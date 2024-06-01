@@ -81,11 +81,12 @@ def transaction_page():
         selected_option = StringVar(transaction)
         selected_option.set("Select an option")  # Default Value
 
+        global user_dropdown_choice
         user_dropdown_choice = selected_option.get()
-        user_dropdown_choice = user_dropdown_choice.strip().lower()
+        # user_dropdown_choice = user_dropdown_choice.strip().lower()
 
         # List of options for the dropdown menu
-        options = ["Category", "Amount", "Date", "Source"]
+        options = ["Category", "Amount", "Date (dd/mm/yyyy)", "Source"]
 
         # The dropdown menu next to the Entry box
         dropdown = OptionMenu(transaction, selected_option, *options) # The star helps with going over the list without having to do loops or comprehension
@@ -100,35 +101,36 @@ def transaction_page():
         def clear_entry(*args):
             global user_dropdown_choice
             user_dropdown_choice = selected_option.get()
-            print(f"{user_dropdown_choice} : {selected_option.get()}")
             user_input.delete(0, END)
 
         def submit():
+            global user_dropdown_choice
             global transaction_amount
             global transaction_date
             global transaction_source
             global transaction_category
 
-            if user_dropdown_choice == "amount":
+            if user_dropdown_choice.strip().lower() == "amount":
                 transaction_amount = user_input.get()
                 user_input.delete(0, END)
-            if user_dropdown_choice == "date":
+            elif "date" in user_dropdown_choice.strip().lower():
                 transaction_date = user_input.get()
                 user_input.delete(0, END)
-            if user_dropdown_choice == "source":
+            elif user_dropdown_choice.strip().lower() == "source":
                 transaction_source = user_input.get()
                 user_input.delete(0, END)
-            if user_dropdown_choice == "category":
+            elif user_dropdown_choice.strip().lower() == "category":
                 transaction_category = user_input.get()
                 user_input.delete(0, END)
             else:
-                print(user_dropdown_choice)
+                messagebox.showerror("Error", "Please select a valid option")
 
         
         def exit_window():
             id_numbers =[]
             for n in transaction_details:
-                id_numbers.append(transaction_details[n]['ID'])
+                values = n['ID']
+                id_numbers.append(values)
             while True:
                 transaction_detail['ID'] = r.randint(1000, 9999)
                 if transaction_detail['ID'] not in id_numbers:
@@ -185,13 +187,14 @@ def add_transaction():
     welcome.destroy()
     transaction_page()
 
-
+# To make it look more presentable
+formatted_dict = ', '.join([f"{key}: {value}" for key, value in transaction_details[-1].items()])
 
 Label(welcome, text="").pack()
 Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user}', font=("Helvetica", 10, "bold underline")).pack()
 Label(welcome, text="").pack()
 Label(welcome, text = f'Current Account Balance: ${balance}').pack()
-Label(welcome, text= f'Your Last Transaction: {transaction_details[-1]}').pack()
+Label(welcome, text= f'Your Last Transaction: \n{formatted_dict}').pack()
 Button(welcome, text= 'Add Transaction', command=add_transaction).pack()
 
 
