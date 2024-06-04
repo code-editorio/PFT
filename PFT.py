@@ -1,20 +1,24 @@
 from tkinter import *
 from tkinter import messagebox
+from tkcalendar import DateEntry
 import random as r
+
 
 def get_user_details():
     root = Tk()
     root.title("Login")
     root.geometry("200x100")
-    root.resizable(False,False)
+    # root.resizable(False,False)
 
+    root.grid_columnconfigure(0, weight=1)
+    root.grid_columnconfigure(5, weight=1)
 
-    Label(root, text="Username: ").grid(column=0, row=0)
+    Label(root, text="Username: ").grid(column=1, row=0)
     user_name = Entry(root)
-    user_name.grid(row=0, column=1, columnspan=3)
-    Label(root, text="Password: ").grid(row=1, column=0)
+    user_name.grid(row=0, column=2, columnspan=3)
+    Label(root, text="Password: ").grid(row=1, column=1)
     password = Entry(root, show="*")
-    password.grid(row=1, column=1, columnspan=3)
+    password.grid(row=1, column=2, columnspan=3)
 
     def submit():
         global username
@@ -33,10 +37,10 @@ def get_user_details():
         password.delete(0, END)
 
     error_label = Label(root, text="", fg="red")
-    error_label.grid(row=3, column=0, columnspan=2)
+    error_label.grid(row=3, column=1, columnspan=2)
 
-    Button(root, padx=10, text="Submit", command=submit).grid(row=2, column=1)
-    Button(root, padx=10, text="Clear", command=clear).grid(row=2, column=2)
+    Button(root, padx=10, text="Submit", command=submit).grid(row=2, column=2)
+    Button(root, padx=10, text="Clear", command=clear).grid(row=2, column=3)
 
 
     root.mainloop()
@@ -52,7 +56,7 @@ def transaction_page():
     transaction = Tk()
     transaction.title("Add Transaction")
     transaction.geometry("389x218")
-    transaction.resizable(False,False)
+    # transaction.resizable(False,False)
 
     # Configure the grid to have proper weight for centering
     transaction.grid_columnconfigure(0, weight=1)
@@ -69,6 +73,7 @@ def transaction_page():
         transaction.grid_columnconfigure(4, weight=0)
         transaction.grid_columnconfigure(5, weight=1)
 
+
         transaction.geometry("500x219")
         global transaction_type
         transaction_type = 'Income'
@@ -81,86 +86,228 @@ def transaction_page():
         selected_option = StringVar(transaction)
         selected_option.set("Select an option")  # Default Value
 
-        global user_dropdown_choice
-        user_dropdown_choice = selected_option.get()
-        # user_dropdown_choice = user_dropdown_choice.strip().lower()
 
         # List of options for the dropdown menu
-        options = ["Category", "Amount", "Date (dd/mm/yyyy)", "Source"]
+        income_category_options = ["Salary", "Pension", "Interest", "Others"]
 
+
+        Label(transaction, text='Category:').grid(row=1, column=1)
         # The dropdown menu next to the Entry box
-        dropdown = OptionMenu(transaction, selected_option, *options) # The star helps with going over the list without having to do loops or comprehension
-        dropdown.grid(row=1, column=1)
+        categories = OptionMenu(transaction, selected_option, *income_category_options) # The star helps with going over the list without having to do loops or comprehension
+        categories.grid(row=1, column=2, columnspan=3)
 
-        user_input = Entry(transaction)
-        user_input.grid(row=1, column=2, columnspan=3)
+
+        Label(transaction, text='Amount ($):').grid(row=2, column=1)
+        amount_input = Entry(transaction)
+        amount_input.grid(row=2, column=2, pady=20, columnspan=3)
+
+        Label(transaction, text='Date (dd/mm/yy):').grid(row=3, column=1)
+        # Create a DateEntry widget
+        date_input = DateEntry(transaction, width=12, background='darkblue', foreground='white', borderwidth=2)
+        date_input.grid(row=3, column=2,  columnspan=3)
+
+        Label(transaction, text='Source:').grid(row=4, column=1)
+        source_input = Entry(transaction)
+        source_input.grid(row=4, column=2, pady=20, columnspan=3)
+
 
         def clear():
-            user_input.delete(0, END)
+            amount_input.delete(0, END)
+            source_input.delete(0,END)
+            selected_option.set("Select an option")  # Default Value
 
-        def clear_entry(*args):
-            global user_dropdown_choice
-            user_dropdown_choice = selected_option.get()
-            user_input.delete(0, END)
+        global transaction_amount
+        global transaction_date
+        global transaction_source
+        global transaction_category
 
-        def submit():
-            global user_dropdown_choice
+        transaction_amount = None
+        transaction_date = None
+        transaction_source = None
+        transaction_category = None
+
+
+
+        def submit(transaction_list, transaction_dict):
             global transaction_amount
             global transaction_date
             global transaction_source
             global transaction_category
 
-            if user_dropdown_choice.strip().lower() == "amount":
-                transaction_amount = user_input.get()
-                user_input.delete(0, END)
-            elif "date" in user_dropdown_choice.strip().lower():
-                transaction_date = user_input.get()
-                user_input.delete(0, END)
-            elif user_dropdown_choice.strip().lower() == "source":
-                transaction_source = user_input.get()
-                user_input.delete(0, END)
-            elif user_dropdown_choice.strip().lower() == "category":
-                transaction_category = user_input.get()
-                user_input.delete(0, END)
+
+            result = messagebox.askokcancel("Confirm Submission", "Are you sure you want to submit this values?")
+
+            if result:
+                try:
+                    transaction_amount = int(amount_input.get())
+                except:
+                    messagebox.showerror("Error", "Invalid Amount Format")
+
+                try:
+                    transaction_date = date_input.get()
+                    transaction_source = source_input.get()
+                    transaction_category = selected_option.get()
+                except:
+                    messagebox.showerror("Error", "Please fill out all options with the right values")
+
+                if transaction_source != None and transaction_source != "" and selected_option.get() != 'Select an option':
+                    id_numbers =[]
+                    for n in transaction_list:
+                        values = n['ID']
+                        id_numbers.append(values)
+                    while True:
+                        transaction_dict['ID'] = r.randint(1000, 9999)
+                        if transaction_detail['ID'] not in id_numbers:
+                            break
+            
+                    transaction_dict['Type'] = 'Income'
+                    transaction_dict['Category'] = transaction_category
+                    transaction_dict['Amount'] = transaction_amount
+                    transaction_dict['Date'] = transaction_date
+                    transaction_list.append(transaction_detail)
+                    transaction_dict = {}
+                    clear()
+                else:
+                    messagebox.showerror("Error", "Please fill out all options with the right values")
             else:
-                messagebox.showerror("Error", "Please select a valid option")
+                pass
+            print(transaction_list)
 
         
         def exit_window():
-            id_numbers =[]
-            for n in transaction_details:
-                values = n['ID']
-                id_numbers.append(values)
-            while True:
-                transaction_detail['ID'] = r.randint(1000, 9999)
-                if transaction_detail['ID'] not in id_numbers:
-                    break
-    
-            transaction_detail['Type'] = 'Income'
-            transaction_detail['Category'] = transaction_category
-            transaction_detail['Amount'] = transaction_amount
-            transaction_detail['Date'] = transaction_date
-            transaction_details.append(transaction_detail)
-            transaction_detail = {}
-            transaction.destroy()
+            result = messagebox.askokcancel("Confirm Exit", "Are you sure you want to exit this page?")
+            if result:
+                transaction.destroy()
+            else:
+                pass
 
-        # When a new option is chosen, the entry is cleared
-        selected_option.trace("w", clear_entry)
 
-        Button(transaction, text='Submit', width=8, command=submit).grid(row=2,column=2)
-        Button(transaction, text='Clear', width=8, command=clear).grid(row=2,column=3)
-        Button(transaction, text='Exit', width=8, command=exit_window).grid(row=2,column=4)
+        Button(transaction, text='Submit', width=8, command= lambda : submit(transaction_details, transaction_detail)).grid(row=5,column=2)
+        Button(transaction, text='Clear', width=8, command=clear).grid(row=5,column=3)
+        Button(transaction, text='Exit', width=8, command=exit_window).grid(row=5,column=4)
 
 
     def expense_button():
-        transaction.geometry("500x500")
+
+        transaction.grid_columnconfigure(0, weight=1)
+        transaction.grid_columnconfigure(1, weight=0)
+        transaction.grid_columnconfigure(2, weight=0)
+        transaction.grid_columnconfigure(3, weight=0)
+        transaction.grid_columnconfigure(4, weight=0)
+        transaction.grid_columnconfigure(5, weight=1)
+
+
+        transaction.geometry("500x219")
         global transaction_type
         transaction_type = 'Expense'
-        expenses_button.grid_forget()
         incomes_button.grid_forget()
+        expenses_button.grid_forget()
         transaction_type_label.grid_forget()
+        Label(transaction, text='Please Fill Out The Details', font=("Helvetica", 10, "bold underline")).grid(row=0, column=0, columnspan=6, pady=10)
 
-        Label(transaction, text='Please Fill Out The Details', font=("Helvetica", 10, "bold underline")).grid(row=0, column=0, columnspan=4, pady=10)
+        # Tkinter variable to hold the selected option
+        selected_option = StringVar(transaction)
+        selected_option.set("Select an option")  # Default Value
+
+
+        # List of options for the dropdown menu
+        income_category_options = ["Food", "Rent", "Clothing", "Car", "Health", "Others"]
+
+
+        Label(transaction, text='Category:').grid(row=1, column=1)
+        # The dropdown menu next to the Entry box
+        categories = OptionMenu(transaction, selected_option, *income_category_options) # The star helps with going over the list without having to do loops or comprehension
+        categories.grid(row=1, column=2, columnspan=3)
+
+
+        Label(transaction, text='Amount ($):').grid(row=2, column=1)
+        amount_input = Entry(transaction)
+        amount_input.grid(row=2, column=2, pady=20, columnspan=3)
+
+        Label(transaction, text='Date (dd/mm/yy):').grid(row=3, column=1)
+        # Create a DateEntry widget
+        date_input = DateEntry(transaction, width=12, background='darkblue', foreground='white', borderwidth=2)
+        date_input.grid(row=3, column=2,  columnspan=3)
+
+        Label(transaction, text='Source:').grid(row=4, column=1)
+        source_input = Entry(transaction)
+        source_input.grid(row=4, column=2, pady=20, columnspan=3)
+
+
+        def clear():
+            amount_input.delete(0, END)
+            source_input.delete(0,END)
+            selected_option.set("Select an option")  # Default Value
+
+        global transaction_amount
+        global transaction_date
+        global transaction_source
+        global transaction_category
+
+        transaction_amount = None
+        transaction_date = None
+        transaction_source = None
+        transaction_category = None
+
+
+
+        def submit(transaction_list, transaction_dict):
+            global transaction_amount
+            global transaction_date
+            global transaction_source
+            global transaction_category
+
+
+            result = messagebox.askokcancel("Confirm Submission", "Are you sure you want to submit this values?")
+
+            if result:
+                try:
+                    transaction_amount = int(amount_input.get())
+                except:
+                    messagebox.showerror("Error", "Invalid Amount Format")
+
+                try:
+                    transaction_date = date_input.get()
+                    transaction_source = source_input.get()
+                    transaction_category = selected_option.get()
+                except:
+                    messagebox.showerror("Error", "Please fill out all options with the right values")
+
+                if transaction_source != None and transaction_source != "" and selected_option.get() != 'Select an option':
+                    id_numbers =[]
+                    for n in transaction_list:
+                        values = n['ID']
+                        id_numbers.append(values)
+                    while True:
+                        transaction_dict['ID'] = r.randint(1000, 9999)
+                        if transaction_detail['ID'] not in id_numbers:
+                            break
+            
+                    transaction_dict['Type'] = 'Income'
+                    transaction_dict['Category'] = transaction_category
+                    transaction_dict['Amount'] = transaction_amount
+                    transaction_dict['Date'] = transaction_date
+                    transaction_list.append(transaction_detail)
+                    transaction_dict = {}
+                    clear()
+                else:
+                    messagebox.showerror("Error", "Please fill out all options with the right values")
+            else:
+                pass
+            print(transaction_list)
+
+        
+        def exit_window():
+            result = messagebox.askokcancel("Confirm Exit", "Are you sure you want to exit this page?")
+            if result:
+                transaction.destroy()
+            else:
+                pass
+
+
+        Button(transaction, text='Submit', width=8, command= lambda : submit(transaction_details, transaction_detail)).grid(row=5,column=2)
+        Button(transaction, text='Clear', width=8, command=clear).grid(row=5,column=3)
+        Button(transaction, text='Exit', width=8, command=exit_window).grid(row=5,column=4)
 
 
 
@@ -195,7 +342,7 @@ Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user}', font=("H
 Label(welcome, text="").pack()
 Label(welcome, text = f'Current Account Balance: ${balance}').pack()
 Label(welcome, text= f'Your Last Transaction: \n{formatted_dict}').pack()
-Button(welcome, text= 'Add Transaction', command=add_transaction).pack()
+Button(welcome, text= 'Add Transaction', command=add_transaction()).pack()
 
 
 welcome.mainloop()
