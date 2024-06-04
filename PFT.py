@@ -51,8 +51,16 @@ balance = 0
 transaction_details = [{'ID': 3232, 'Type': 'Income', 'Category': 'Pension', 'Amount': 12444, "Date": "09/09/2009"}]
 transaction_detail = {}
 
-def transaction_page():
 
+
+welcome = Tk()
+welcome.title("Personal Finance Tracker")
+welcome.geometry("500x500")
+welcome.resizable(False,False)
+
+def add_transaction_page():
+
+    welcome.destroy()
     transaction = Tk()
     transaction.title("Add Transaction")
     transaction.geometry("389x218")
@@ -321,28 +329,15 @@ def transaction_page():
     transaction.mainloop()
 
 
-welcome = Tk()
-welcome.title("Personal Finance Tracker")
-welcome.geometry("500x500")
-welcome.resizable(False,False)
-
-
-def add_transaction():
-    # global transaction_detail
-    # global transaction_details
-    # global balance
-    welcome.destroy()
-    transaction_page()
-
 # To make it look more presentable
 formatted_dict = ', '.join([f"{key}: {value}" for key, value in transaction_details[-1].items()])
 
-Label(welcome, text="").pack()
-Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user}', font=("Helvetica", 10, "bold underline")).pack()
-Label(welcome, text="").pack()
-Label(welcome, text = f'Current Account Balance: ${balance}').pack()
-Label(welcome, text= f'Your Last Transaction: \n{formatted_dict}').pack()
-Button(welcome, text= 'Add Transaction', command=add_transaction()).pack()
+Label(welcome, text="").grid()
+Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user}', font=("Helvetica", 10, "bold underline")).grid(row=0)
+Label(welcome, text="").grid(row=1)
+Label(welcome, text = f'Current Account Balance: ${balance}').grid(row=2)
+Label(welcome, text= f'Your Last Transaction: \n{formatted_dict}').grid(row=3)
+Button(welcome, text= 'Add Transaction', command=add_transaction_page).grid(row=4)
 
 
 welcome.mainloop()
