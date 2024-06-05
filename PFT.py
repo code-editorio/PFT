@@ -2,7 +2,27 @@ from tkinter import *
 from tkinter import messagebox
 from tkcalendar import DateEntry
 import random as r
+import sqlite3
+from datetime import datetime
 
+# SQL connection and table creation
+connector = sqlite3.connect('PFT.sqlite')
+cur = connector.cursor()
+
+# cur.execute('DROP TABLE IF EXISTS PFT')
+
+try:
+    cur.execute('''
+    CREATE TABLE PFT (
+                ID INTEGER PRIMARY KEY, 
+                Type TEXT, 
+                Category TEXT, 
+                Amount INTEGER,
+                Recipient TEXT,
+                Date TEXT,
+                Timestamp TEXT)''') #sqlite3 date format is yyyy-mm-dd, but we want dd-mm-yyyy so we leave it as text
+except:
+    pass
 
 def get_user_details():
     root = Tk()
@@ -44,11 +64,17 @@ def get_user_details():
 
 
     root.mainloop()
-    return username
+    try:
+        return username
+    except:
+        print("Please Enter Your Username and Password")
 
 user = get_user_details()
-balance = 0
-transaction_details = [{'ID': 3232, 'Type': 'Income', 'Category': 'Pension', 'Amount': 12444, "Date": "09/09/2009"}]
+
+if user == None:
+    quit()
+
+
 transaction_detail = {}
 
 
@@ -58,9 +84,89 @@ welcome.title("Personal Finance Tracker")
 welcome.geometry("500x500")
 welcome.resizable(False,False)
 
-def add_transaction_page():
 
-    welcome.destroy()
+
+welcome.grid_columnconfigure(0, weight=1)
+welcome.grid_columnconfigure(5, weight=1)
+
+
+Label(welcome, text="").grid()
+Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user}', font=("Helvetica", 10, "bold underline")).grid(row=0, column=1)
+Label(welcome, text="").grid(row=1,column=1)
+def get_balance():
+    balance = 0
+    query = 'SELECT sum(Amount) FROM PFT WHERE Type = "Income"'
+    try:
+        for n in cur.execute(query):
+            balance += int(n[0])
+    except:
+        pass
+
+    query2 = 'SELECT sum(Amount) FROM PFT WHERE Type = "Expense"'
+    try:
+        for n in cur.execute(query2):
+            balance -= int(n[0])
+    except:
+        pass
+    return balance
+
+def get_last_transaction():
+    last_transaction = 'SELECT * FROM PFT ORDER BY Timestamp'
+
+    values = []
+    [values.append(n) for n in cur.execute(last_transaction)]
+    try:
+        value = values[-1]
+    except:
+        value = None
+
+    # To make it look more presentable
+    formatted_dict = ""
+    if value != None:
+        formatted_dict = ""
+        if value[1] == 'Income':
+            for v in range(6):
+                if v == 0:
+                    formatted_dict += f'ID: {value[0]}\n\n'
+                elif v == 1:
+                    formatted_dict += f'Type: {value[1]}\n\n'
+                elif v == 2:
+                    formatted_dict += f'Category: {value[2]}\n\n'
+                elif v == 3:
+                    formatted_dict += f'Amount: $ {value[3]}\n\n'
+                elif v == 4:
+                    formatted_dict += f'Source: {value[4]}\n\n'
+                else:
+                    formatted_dict += f'Date: {value[5]}'
+        elif value[1] == 'Expense':
+            for v in range(6):
+                if v == 0:
+                    formatted_dict += f'ID: {value[0]}\n\n'
+                elif v == 1:
+                    formatted_dict += f'Type: {value[1]}\n\n'
+                elif v == 2:
+                    formatted_dict += f'Category: {value[2]}\n\n'
+                elif v == 3:
+                    formatted_dict += f'Amount: $ {value[3]}\n\n'
+                elif v == 4:
+                    formatted_dict += f'Payee: {value[4]}\n\n'
+                else:
+                    formatted_dict += f'Date: {value[5]}'
+    else:
+        formatted_dict = "None"
+    return formatted_dict
+
+balance_label = Label(welcome, text = f'Current Account Balance: $ {get_balance()}')
+balance_label.grid(row=2,column=1)
+transaction_label = Label(welcome, text= f'Your Last Transaction: \n\n{get_last_transaction()}\n')
+transaction_label.grid(row=3,column=1)
+def update_welcome_page():
+    balance_label.config(text=f'Current Account Balance: ${get_balance()}')
+    transaction_label.config(text=f'Your Last Transaction: \n\n{get_last_transaction()}\n')
+
+def add_transaction_page():
+    
+    welcome.withdraw()
     transaction = Tk()
     transaction.title("Add Transaction")
     transaction.geometry("389x218")
@@ -82,7 +188,7 @@ def add_transaction_page():
         transaction.grid_columnconfigure(5, weight=1)
 
 
-        transaction.geometry("500x219")
+        transaction.geometry("500x319")
         global transaction_type
         transaction_type = 'Income'
         incomes_button.grid_forget()
@@ -136,7 +242,7 @@ def add_transaction_page():
 
 
 
-        def submit(transaction_list, transaction_dict):
+        def submit(transaction_dict):
             global transaction_amount
             global transaction_date
             global transaction_source
@@ -144,53 +250,74 @@ def add_transaction_page():
 
 
             result = messagebox.askokcancel("Confirm Submission", "Are you sure you want to submit this values?")
+            error_raised = False
 
             if result:
+                # Validation
                 try:
                     transaction_amount = int(amount_input.get())
                 except:
+                    error_raised = True
                     messagebox.showerror("Error", "Invalid Amount Format")
+                
+                if transaction_amount < 0:
+                    error_raised = True
+                    messagebox.showerror("Error", "Amount must be greater than 0")
 
                 try:
                     transaction_date = date_input.get()
                     transaction_source = source_input.get()
                     transaction_category = selected_option.get()
                 except:
+                    error_raised = True
                     messagebox.showerror("Error", "Please fill out all options with the right values")
 
-                if transaction_source != None and transaction_source != "" and selected_option.get() != 'Select an option':
+
+                if transaction_source != None and transaction_source != "" and selected_option.get() != 'Select an option' and error_raised == False:
                     id_numbers =[]
-                    for n in transaction_list:
-                        values = n['ID']
-                        id_numbers.append(values)
+                    sqlstr = 'SELECT ID FROM PFT'
+
+                    for n in cur.execute(sqlstr):
+                        id_numbers.append(n[0])
                     while True:
                         transaction_dict['ID'] = r.randint(1000, 9999)
-                        if transaction_detail['ID'] not in id_numbers:
+                        if transaction_dict['ID'] not in id_numbers:
                             break
             
                     transaction_dict['Type'] = 'Income'
                     transaction_dict['Category'] = transaction_category
                     transaction_dict['Amount'] = transaction_amount
+                    transaction_dict['Recipient'] = transaction_source
                     transaction_dict['Date'] = transaction_date
-                    transaction_list.append(transaction_detail)
+                    # Insert the transaction into the database
+                    cur.execute('''
+                    INSERT INTO PFT (ID, Type, Category, Amount, Recipient, Date, Timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)''', (transaction_dict['ID'], transaction_dict['Type'], 
+                                                      transaction_dict['Category'], transaction_dict['Amount'], 
+                                                      transaction_dict['Recipient'], transaction_dict['Date'],
+                                                      datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                    
+                    connector.commit()  # Save the changes to the database
+                    # transaction_list.append(transaction_detail)
                     transaction_dict = {}
+                    update_welcome_page()
                     clear()
                 else:
                     messagebox.showerror("Error", "Please fill out all options with the right values")
             else:
                 pass
-            print(transaction_list)
 
         
         def exit_window():
             result = messagebox.askokcancel("Confirm Exit", "Are you sure you want to exit this page?")
             if result:
                 transaction.destroy()
+                welcome.deiconify()
             else:
                 pass
 
 
-        Button(transaction, text='Submit', width=8, command= lambda : submit(transaction_details, transaction_detail)).grid(row=5,column=2)
+        Button(transaction, text='Submit', width=8, command= lambda : submit(transaction_detail)).grid(row=5,column=2)
         Button(transaction, text='Clear', width=8, command=clear).grid(row=5,column=3)
         Button(transaction, text='Exit', width=8, command=exit_window).grid(row=5,column=4)
 
@@ -205,7 +332,7 @@ def add_transaction_page():
         transaction.grid_columnconfigure(5, weight=1)
 
 
-        transaction.geometry("500x219")
+        transaction.geometry("500x319")
         global transaction_type
         transaction_type = 'Expense'
         incomes_button.grid_forget()
@@ -237,83 +364,105 @@ def add_transaction_page():
         date_input = DateEntry(transaction, width=12, background='darkblue', foreground='white', borderwidth=2)
         date_input.grid(row=3, column=2,  columnspan=3)
 
-        Label(transaction, text='Source:').grid(row=4, column=1)
-        source_input = Entry(transaction)
-        source_input.grid(row=4, column=2, pady=20, columnspan=3)
+        Label(transaction, text='Payee:').grid(row=4, column=1)
+        payee_input = Entry(transaction)
+        payee_input.grid(row=4, column=2, pady=20, columnspan=3)
 
 
         def clear():
             amount_input.delete(0, END)
-            source_input.delete(0,END)
+            payee_input.delete(0,END)
             selected_option.set("Select an option")  # Default Value
 
         global transaction_amount
         global transaction_date
-        global transaction_source
+        global transaction_payee
         global transaction_category
 
         transaction_amount = None
         transaction_date = None
-        transaction_source = None
+        transaction_payee = None
         transaction_category = None
 
 
 
-        def submit(transaction_list, transaction_dict):
+        def submit(transaction_dict):
             global transaction_amount
             global transaction_date
-            global transaction_source
+            global transaction_payee
             global transaction_category
 
-
+            error_raised = False
             result = messagebox.askokcancel("Confirm Submission", "Are you sure you want to submit this values?")
 
             if result:
                 try:
                     transaction_amount = int(amount_input.get())
                 except:
+                    error_raised = True
                     messagebox.showerror("Error", "Invalid Amount Format")
 
                 try:
+                    if transaction_amount < 0:
+                        error_raised = True
+                        messagebox.showerror("Error", "Amount must be greater than 0")
+                except:
+                    error_raised = True
+                    messagebox.showerror("Error", "Amount must be greater than 0")
+                
+                try:
                     transaction_date = date_input.get()
-                    transaction_source = source_input.get()
+                    transaction_payee = payee_input.get()
                     transaction_category = selected_option.get()
                 except:
+                    error_raised = True
                     messagebox.showerror("Error", "Please fill out all options with the right values")
 
-                if transaction_source != None and transaction_source != "" and selected_option.get() != 'Select an option':
+                if transaction_payee != None and transaction_payee != "" and selected_option.get() != 'Select an option' and error_raised == False:
                     id_numbers =[]
-                    for n in transaction_list:
-                        values = n['ID']
-                        id_numbers.append(values)
+                    sqlstr = 'SELECT ID FROM PFT'
+
+                    for n in cur.execute(sqlstr):
+                        id_numbers.append(n[0])
                     while True:
                         transaction_dict['ID'] = r.randint(1000, 9999)
-                        if transaction_detail['ID'] not in id_numbers:
+                        if transaction_dict['ID'] not in id_numbers:
                             break
             
-                    transaction_dict['Type'] = 'Income'
+                    transaction_dict['Type'] = 'Expense'
                     transaction_dict['Category'] = transaction_category
                     transaction_dict['Amount'] = transaction_amount
+                    transaction_dict['Recipient'] = transaction_payee
                     transaction_dict['Date'] = transaction_date
-                    transaction_list.append(transaction_detail)
+
+                    # Insert the transaction into the database
+                    cur.execute('''
+                    INSERT INTO PFT (ID, Type, Category, Amount, Recipient, Date, Timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)''', (transaction_dict['ID'], transaction_dict['Type'], transaction_dict['Category'], 
+                                                   transaction_dict['Amount'], transaction_dict['Recipient'], transaction_dict['Date'],
+                                                   datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                    
+                    connector.commit()  # Save the changes to the database
+                    # transaction_list.append(transaction_detail)
                     transaction_dict = {}
+                    update_welcome_page()
                     clear()
                 else:
                     messagebox.showerror("Error", "Please fill out all options with the right values")
             else:
                 pass
-            print(transaction_list)
 
         
         def exit_window():
             result = messagebox.askokcancel("Confirm Exit", "Are you sure you want to exit this page?")
             if result:
                 transaction.destroy()
+                welcome.deiconify()
             else:
                 pass
 
 
-        Button(transaction, text='Submit', width=8, command= lambda : submit(transaction_details, transaction_detail)).grid(row=5,column=2)
+        Button(transaction, text='Submit', width=8, command= lambda : submit(transaction_detail)).grid(row=5,column=2)
         Button(transaction, text='Clear', width=8, command=clear).grid(row=5,column=3)
         Button(transaction, text='Exit', width=8, command=exit_window).grid(row=5,column=4)
 
@@ -321,24 +470,16 @@ def add_transaction_page():
 
     transaction_type_label = Label(transaction, text='What Type of Transaction?', font=("Helvetica", 10, "bold underline"))
     transaction_type_label.grid(row=0, column=0, columnspan=4, pady=10)
-    incomes_button = Button(transaction, text='Income', width=10, command=income_button)
+    incomes_button = Button(transaction, text='Income', width=10, command= income_button)
     incomes_button.grid(row=1, column=1)
     expenses_button = Button(transaction, text='Expense', width=10,  command=expense_button)
     expenses_button.grid(row=1, column=2)
 
     transaction.mainloop()
 
-
-# To make it look more presentable
-formatted_dict = ', '.join([f"{key}: {value}" for key, value in transaction_details[-1].items()])
-
-Label(welcome, text="").grid()
-Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user}', font=("Helvetica", 10, "bold underline")).grid(row=0)
-Label(welcome, text="").grid(row=1)
-Label(welcome, text = f'Current Account Balance: ${balance}').grid(row=2)
-Label(welcome, text= f'Your Last Transaction: \n{formatted_dict}').grid(row=3)
-Button(welcome, text= 'Add Transaction', command=add_transaction_page).grid(row=4)
+Button(welcome, text= 'Add Transaction', command= add_transaction_page).grid(row=4,column=1)
 
 
 welcome.mainloop()
-
+connector.commit()
+connector.close()
