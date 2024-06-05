@@ -91,7 +91,7 @@ welcome.grid_columnconfigure(5, weight=1)
 
 
 Label(welcome, text="").grid()
-Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user}', font=("Helvetica", 10, "bold underline")).grid(row=0, column=1)
+Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user.capitalize()}', font=("Helvetica", 10, "bold underline")).grid(row=0, column=1)
 Label(welcome, text="").grid(row=1,column=1)
 def get_balance():
     balance = 0
