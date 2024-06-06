@@ -5,9 +5,11 @@ import random as r
 import sqlite3
 from datetime import datetime
 
+
 # SQL connection and table creation
 connector = sqlite3.connect('PFT.sqlite')
 cur = connector.cursor()
+
 
 # cur.execute('DROP TABLE IF EXISTS PFT')
 
@@ -19,7 +21,7 @@ try:
                 Category TEXT, 
                 Amount INTEGER,
                 Recipient TEXT,
-                Date TEXT,
+                tDate TEXT,
                 Timestamp TEXT)''') #sqlite3 date format is yyyy-mm-dd, but we want dd-mm-yyyy so we leave it as text
 except:
     pass
@@ -87,12 +89,12 @@ welcome.resizable(False,False)
 
 
 welcome.grid_columnconfigure(0, weight=1)
-welcome.grid_columnconfigure(5, weight=1)
+welcome.grid_columnconfigure(8, weight=1)
 
 
 Label(welcome, text="").grid()
-Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user.capitalize()}', font=("Helvetica", 10, "bold underline")).grid(row=0, column=1)
-Label(welcome, text="").grid(row=1,column=1)
+Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user.lstrip().strip().capitalize()}', font=("Helvetica", 10, "bold underline")).grid(row=0, column=1, columnspan=7, pady=20)
+
 def get_balance():
     balance = 0
     query = 'SELECT sum(Amount) FROM PFT WHERE Type = "Income"'
@@ -134,10 +136,13 @@ def get_last_transaction():
                     formatted_dict += f'Category: {value[2]}\n\n'
                 elif v == 3:
                     formatted_dict += f'Amount: $ {value[3]}\n\n'
-                elif v == 4:
-                    formatted_dict += f'Source: {value[4]}\n\n'
-                else:
-                    formatted_dict += f'Date: {value[5]}'
+                # elif v == 4:
+                #     formatted_dict += f'Source: {value[4]}\n\n'
+                elif v == 5:
+                    tdate = value[5]
+                    last_transaction_date = datetime.strptime(tdate, "%Y-%m-%d") # Convert the string to a datetime object
+                    new_date_format = last_transaction_date.strftime("%d/%m/%Y") # Format the datetime object to the desired format 'dd/mm/yyyy'
+                    formatted_dict += f'Date: {new_date_format}'
         elif value[1] == 'Expense':
             for v in range(6):
                 if v == 0:
@@ -148,18 +153,22 @@ def get_last_transaction():
                     formatted_dict += f'Category: {value[2]}\n\n'
                 elif v == 3:
                     formatted_dict += f'Amount: $ {value[3]}\n\n'
-                elif v == 4:
-                    formatted_dict += f'Payee: {value[4]}\n\n'
-                else:
-                    formatted_dict += f'Date: {value[5]}'
+                # elif v == 4:
+                #     formatted_dict += f'Payee: {value[4]}\n\n'
+                elif v == 5:
+                    tdate = value[5]
+                    last_transaction_date = datetime.strptime(tdate, "%Y-%m-%d") # Convert the string to a datetime object
+                    new_date_format = last_transaction_date.strftime("%d/%m/%Y") # Format the datetime object to the desired format 'dd/mm/yyyy'
+                    formatted_dict += f'Date: {new_date_format}'
     else:
         formatted_dict = "None"
+
     return formatted_dict
 
 balance_label = Label(welcome, text = f'Current Account Balance: $ {get_balance()}')
-balance_label.grid(row=2,column=1)
+balance_label.grid(row=2,column=2, columnspan=5)
 transaction_label = Label(welcome, text= f'Your Last Transaction: \n\n{get_last_transaction()}\n')
-transaction_label.grid(row=3,column=1)
+transaction_label.grid(row=3,column=3, columnspan=5)
 def update_welcome_page():
     balance_label.config(text=f'Current Account Balance: ${get_balance()}')
     transaction_label.config(text=f'Your Last Transaction: \n\n{get_last_transaction()}\n')
@@ -215,9 +224,9 @@ def add_transaction_page():
         amount_input = Entry(transaction)
         amount_input.grid(row=2, column=2, pady=20, columnspan=3)
 
-        Label(transaction, text='Date (dd/mm/yy):').grid(row=3, column=1)
+        Label(transaction, text='Date (dd/mm/yyyy):').grid(row=3, column=1)
         # Create a DateEntry widget
-        date_input = DateEntry(transaction, width=12, background='darkblue', foreground='white', borderwidth=2)
+        date_input = DateEntry(transaction, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern="dd/mm/yyyy")
         date_input.grid(row=3, column=2,  columnspan=3)
 
         Label(transaction, text='Source:').grid(row=4, column=1)
@@ -260,12 +269,17 @@ def add_transaction_page():
                     error_raised = True
                     messagebox.showerror("Error", "Invalid Amount Format")
                 
-                if transaction_amount < 0:
-                    error_raised = True
-                    messagebox.showerror("Error", "Amount must be greater than 0")
+                try:
+                    if transaction_amount < 0:
+                        error_raised = True
+                        messagebox.showerror("Error", "Amount must be greater than 0")
+                except:
+                    pass
 
                 try:
-                    transaction_date = date_input.get()
+                    tkinter_date = date_input.get()
+                    date_obj = datetime.strptime(tkinter_date, '%d/%m/%Y') # Convert tkinter format to datetime object
+                    transaction_date = date_obj.strftime('%Y-%m-%d') # Convert datetime object to SQL standard format
                     transaction_source = source_input.get()
                     transaction_category = selected_option.get()
                 except:
@@ -291,7 +305,7 @@ def add_transaction_page():
                     transaction_dict['Date'] = transaction_date
                     # Insert the transaction into the database
                     cur.execute('''
-                    INSERT INTO PFT (ID, Type, Category, Amount, Recipient, Date, Timestamp)
+                    INSERT INTO PFT (ID, Type, Category, Amount, Recipient, tDate, Timestamp)
                     VALUES (?, ?, ?, ?, ?, ?, ?)''', (transaction_dict['ID'], transaction_dict['Type'], 
                                                       transaction_dict['Category'], transaction_dict['Amount'], 
                                                       transaction_dict['Recipient'], transaction_dict['Date'],
@@ -302,6 +316,8 @@ def add_transaction_page():
                     transaction_dict = {}
                     update_welcome_page()
                     clear()
+                    transaction.destroy()
+                    welcome.deiconify()
                 else:
                     messagebox.showerror("Error", "Please fill out all options with the right values")
             else:
@@ -316,11 +332,10 @@ def add_transaction_page():
             else:
                 pass
 
-
+    
         Button(transaction, text='Submit', width=8, command= lambda : submit(transaction_detail)).grid(row=5,column=2)
         Button(transaction, text='Clear', width=8, command=clear).grid(row=5,column=3)
         Button(transaction, text='Exit', width=8, command=exit_window).grid(row=5,column=4)
-
 
     def expense_button():
 
@@ -359,9 +374,9 @@ def add_transaction_page():
         amount_input = Entry(transaction)
         amount_input.grid(row=2, column=2, pady=20, columnspan=3)
 
-        Label(transaction, text='Date (dd/mm/yy):').grid(row=3, column=1)
+        Label(transaction, text='Date (dd/mm/yyyy):').grid(row=3, column=1)
         # Create a DateEntry widget
-        date_input = DateEntry(transaction, width=12, background='darkblue', foreground='white', borderwidth=2)
+        date_input = DateEntry(transaction, width=12, background='darkblue', foreground='white', borderwidth=2, date_pattern = "dd/mm/yyyy")
         date_input.grid(row=3, column=2,  columnspan=3)
 
         Label(transaction, text='Payee:').grid(row=4, column=1)
@@ -407,11 +422,12 @@ def add_transaction_page():
                         error_raised = True
                         messagebox.showerror("Error", "Amount must be greater than 0")
                 except:
-                    error_raised = True
-                    messagebox.showerror("Error", "Amount must be greater than 0")
+                    pass
                 
                 try:
-                    transaction_date = date_input.get()
+                    tkinter_date = date_input.get()
+                    date_obj = datetime.strptime(tkinter_date, '%d/%m/%Y') # Convert tkinter format to datetime object
+                    transaction_date = date_obj.strftime('%Y-%m-%d') # Convert datetime object to SQL standard format
                     transaction_payee = payee_input.get()
                     transaction_category = selected_option.get()
                 except:
@@ -437,7 +453,7 @@ def add_transaction_page():
 
                     # Insert the transaction into the database
                     cur.execute('''
-                    INSERT INTO PFT (ID, Type, Category, Amount, Recipient, Date, Timestamp)
+                    INSERT INTO PFT (ID, Type, Category, Amount, Recipient, tDate, Timestamp)
                     VALUES (?, ?, ?, ?, ?, ?, ?)''', (transaction_dict['ID'], transaction_dict['Type'], transaction_dict['Category'], 
                                                    transaction_dict['Amount'], transaction_dict['Recipient'], transaction_dict['Date'],
                                                    datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
@@ -447,6 +463,8 @@ def add_transaction_page():
                     transaction_dict = {}
                     update_welcome_page()
                     clear()
+                    transaction.destroy()
+                    welcome.deiconify()
                 else:
                     messagebox.showerror("Error", "Please fill out all options with the right values")
             else:
@@ -477,7 +495,51 @@ def add_transaction_page():
 
     transaction.mainloop()
 
-Button(welcome, text= 'Add Transaction', command= add_transaction_page).grid(row=4,column=1)
+def transaction_summary_page():
+    print('Transaction Page')
+    welcome.withdraw() # Temporarily closing the welcoming window
+
+    dash = Tk() # The window for the dashboard
+    dash.title('Dashboard') # The window's name
+    # dash.geometry() #The size of the window
+
+
+    
+
+
+
+
+
+
+    query = 'SELECT ID, Type, Category, Amount, Recipient, Date FROM PFT;' # SQL code to collect the neccessary data from the database
+
+    # Creation of the complex data structure
+    all_transactions_list = [] # Becomes a list of dictionaries [{},{},{}]
+    all_transactions_dict = {}
+
+    # Add all the values to the dictionary with their respective meanings, adding that dictionary to a list then clearing that dictionary before starting again on a new row
+    for row in cur.execute(query):
+        all_transactions_dict['ID'] = row[0]
+        all_transactions_dict['Type'] = row[1]
+        all_transactions_dict['Category'] = row[2]
+        all_transactions_dict['Amount'] = row[3]
+        all_transactions_dict['Recipient'] = row[4]
+        all_transactions_dict['Date'] = row[5]
+        all_transactions_list.append(all_transactions_dict)
+        all_transactions_dict = {}
+
+
+
+
+    dash.mainloop()
+
+def delete_transaction_page():
+    print('Deletion Page')
+
+
+Button(welcome, text= 'Add Transaction', command= add_transaction_page).grid(row=4,column=3)
+Button(welcome, text= 'Transaction Summary', command= transaction_summary_page).grid(row=4,column=4)
+Button(welcome, text= 'Delete Transaction', command= delete_transaction_page).grid(row=4,column=5)
 
 
 welcome.mainloop()
