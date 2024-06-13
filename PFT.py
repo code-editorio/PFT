@@ -4,6 +4,8 @@ from tkcalendar import DateEntry
 import random as r
 import sqlite3
 from datetime import datetime
+import matplotlib.pyplot as plt
+from tkinter import ttk
 
 
 # SQL connection and table creation
@@ -25,6 +27,13 @@ try:
                 Timestamp TEXT)''') #sqlite3 date format is yyyy-mm-dd, but we want dd-mm-yyyy so we leave it as text
 except:
     pass
+
+tester = input('Would you like tester date? (y/n): ')
+
+if tester == 'y' or tester == 'yes':
+    fhand = open('test_data.txt', 'r').read()
+
+    cur.execute(fhand)
 
 def get_user_details():
     root = Tk()
@@ -299,9 +308,9 @@ def add_transaction_page():
                             break
             
                     transaction_dict['Type'] = 'Income'
-                    transaction_dict['Category'] = transaction_category
+                    transaction_dict['Category'] = transaction_category.capitalize()
                     transaction_dict['Amount'] = transaction_amount
-                    transaction_dict['Recipient'] = transaction_source
+                    transaction_dict['Recipient'] = transaction_source.capitalize()
                     transaction_dict['Date'] = transaction_date
                     # Insert the transaction into the database
                     cur.execute('''
@@ -446,9 +455,9 @@ def add_transaction_page():
                             break
             
                     transaction_dict['Type'] = 'Expense'
-                    transaction_dict['Category'] = transaction_category
+                    transaction_dict['Category'] = transaction_category.capitalize()
                     transaction_dict['Amount'] = transaction_amount
-                    transaction_dict['Recipient'] = transaction_payee
+                    transaction_dict['Recipient'] = transaction_payee.capitalize()
                     transaction_dict['Date'] = transaction_date
 
                     # Insert the transaction into the database
@@ -496,40 +505,291 @@ def add_transaction_page():
     transaction.mainloop()
 
 def transaction_summary_page():
-    print('Transaction Page')
     welcome.withdraw() # Temporarily closing the welcoming window
 
     dash = Tk() # The window for the dashboard
     dash.title('Dashboard') # The window's name
-    # dash.geometry() #The size of the window
+    dash.geometry('1080x800') #The size of the window will become full screen
+
+    dash.grid_columnconfigure(0,weight=1) # Centering the entire window
+    dash.grid_columnconfigure(8,weight=1) # Centering the entire window
+    # dash.grid_rowconfigure(0, weight=1) # Centering the entire window
+    # dash.grid_rowconfigure(2, weight=0) # Centering the entire window
+    # dash.grid_rowconfigure(4, weight=0) # Centering the entire window
+    # dash.grid_rowconfigure(6, weight=0) # Centering the entire window
 
 
-    
+    # Row 1
+    # Start Time
+    Label(dash, text="From: ", font="10").grid(row=1,column=1,pady=5,)
+    start_date_input = DateEntry(dash, width=20, background='darkblue', foreground='white', borderwidth=2, date_pattern="dd/mm/yyyy")
+    start_date_input.grid(row=1, column=2, sticky=W, padx=0) # Using sticky for better design
+
+    #End Time
+    Label(dash, text="To: ", font="10").grid(row=1,column=3,pady=5)
+    end_date_input = DateEntry(dash, width=20, background='darkblue', foreground='white', borderwidth=2, date_pattern="dd/mm/yyyy")
+    end_date_input.grid(row=1, column=4, sticky=W) # Using sticky for better design
+
+    # Type
+    Label(dash, text="Type: ", font="10").grid(row=1,column=5)
+    # Dropdown procedure
+    type_options = ["Income", "Expense"]
+    drop_down = ttk.Combobox(dash, values=type_options, width=20)
+    drop_down.set("Income or Expense")
+    drop_down.grid(row=1, column=6, sticky=W)
+
+    # Row 2
+    # Category
+    Label(dash, text="Category: ", font="10").grid(row=2,column=1)
+    category_options = ["None"]
+    category_choice = ttk.Combobox(dash, values=category_options,width=23)
+    category_choice.grid(row=2, column=2, sticky=W)
+
+    # Changing the category values when the Type changes
+    def update_second_dropdown(event):
+        selected_option = drop_down.get()
+        if selected_option == "Income":
+            new_options = ["Salary", "Pension", "Interest", "Others"]
+        elif selected_option == "Expense":
+            new_options = ["Food", "Rent", "Clothing", "Car", "Health", "Others"]
+        else:
+            new_options = ["None"]
+
+        category_choice['values'] = new_options
+        if new_options:
+            category_choice.set(new_options[0])
+        else:
+            category_choice.set("None")
 
 
 
+    drop_down.bind("<<ComboboxSelected>>", update_second_dropdown)
+
+    # Source or Payee
+    Label(dash, text="Recipient: ", font="10").grid(row=2,column=3)
+    recipient_choice = Entry(dash, width=23)
+    recipient_choice.grid(row=2, column=4, sticky=W)
+
+
+    read_only_text = Text(dash, width=90, height=10, wrap='word', font=('Arial', 12)) # The text box for inserting the transactions
+    # Centering the text
+    read_only_text.tag_configure('center', justify='center')
+    read_only_text.tag_add('center', 1.0, 'end')
+    read_only_text.grid(row=3, column=1, columnspan=6, pady=20)
+    # Disable the Text widget to make it read-only
+    read_only_text.config(state='disabled')
+
+    def sql_date_conversion(tkinter_date):
+        date_obj = datetime.strptime(tkinter_date, '%d/%m/%Y') # Convert tkinter format to datetime object
+        sql_date = date_obj.strftime('%Y-%m-%d') # Convert datetime object to SQL standard format
+        return sql_date
+
+    def tkinter_date_conversion(sql_date):
+        date_obj = datetime.strptime(sql_date, '%Y-%m-%d') # Convert sql format to datetime object
+        tkinter_date = date_obj.strftime('%d/%m/%Y') # Convert datetime object to standard format
+        return tkinter_date
+
+    def show():
+        # Disable the Text widget to make it read-only
+        read_only_text.config(state='normal')
+
+        read_only_text.delete("1.0", END) # Clear the text already there before adding new ones
+
+        try:
+            start_tDate = sql_date_conversion(start_date_input.get()) # Ending Date
+            end_tDate = sql_date_conversion(end_date_input.get()) # Ending Date
+            utype = drop_down.get() # Type (Income or Expense)
+            category = category_choice.get().strip() # Category
+            recipient = recipient_choice.get().strip() # Payee or Source
+        except:
+            pass
+        if utype == "Income or Expense":
+            messagebox.showinfo("Sorry", "You need to pick a class")
+
+        if utype.lower() == "income" and recipient == "":
+            query = f'''
+                SELECT ID, Type, Category, Amount, Recipient, tDate FROM PFT
+                WHERE tDate BETWEEN ? AND ? AND
+                Category == ? AND
+                Type == "Income"
+                ORDER BY Timestamp;
+            ''' # SQL code to collect the neccessary data from the database
+
+            # Creation of the complex data structure
+            all_transactions_list = [] # Becomes a list of dictionaries [{},{},{}] with the for loop below
+            all_transactions_dict = {}
+
+            # Add all the values to the dictionary with their respective meanings, adding that dictionary to a list then clearing that dictionary before starting again on a new row
+            for row in cur.execute(query, (start_tDate, end_tDate, category.capitalize())):
+                all_transactions_dict['ID'] = row[0]
+                all_transactions_dict['Type'] = row[1]
+                all_transactions_dict['Category'] = row[2]
+                all_transactions_dict['Amount'] = row[3]
+                all_transactions_dict['Recipient'] = row[4]
+                all_transactions_dict['Date'] = tkinter_date_conversion(row[5])
+                all_transactions_list.append(all_transactions_dict)
+                all_transactions_dict = {}
+        elif utype.lower() == "expense" and recipient == "":
+            query = f'''
+                SELECT ID, Type, Category, Amount, Recipient, tDate FROM PFT
+                WHERE tDate BETWEEN ? AND ? AND
+                Category == ? AND
+                Type == "Expense"
+                ORDER BY Timestamp;
+            ''' # SQL code to collect the neccessary data from the database
+
+            # Creation of the complex data structure
+            all_transactions_list = [] # Becomes a list of dictionaries [{},{},{}] with the for loop below
+            all_transactions_dict = {}
+
+            # Add all the values to the dictionary with their respective meanings, adding that dictionary to a list then clearing that dictionary before starting again on a new row
+            for row in cur.execute(query, (start_tDate, end_tDate, category.capitalize())):
+                all_transactions_dict['ID'] = row[0]
+                all_transactions_dict['Type'] = row[1]
+                all_transactions_dict['Category'] = row[2]
+                all_transactions_dict['Amount'] = row[3]
+                all_transactions_dict['Recipient'] = row[4]
+                all_transactions_dict['Date'] = tkinter_date_conversion(row[5])
+                all_transactions_list.append(all_transactions_dict)
+                all_transactions_dict = {}
 
 
 
-    query = 'SELECT ID, Type, Category, Amount, Recipient, Date FROM PFT;' # SQL code to collect the neccessary data from the database
+        count = 1
+        try:
+            if len(all_transactions_list) > 0:
+                for row in all_transactions_list: # Collecting all the transactions in the database and inserting them into the text box in a clean format
+                    formatted_text = ', '.join(f"{key}: {value}" for key, value in row.items())
+                    read_only_text.insert(END, f'{count} |   {formatted_text}\n\n')
+                    count += 1
+            else:
+                read_only_text.insert(END, "No Values Match Your Requirements")
+        except:
+            pass
+        # Disable the Text widget to make it read-only
+        read_only_text.config(state='disabled')
 
-    # Creation of the complex data structure
-    all_transactions_list = [] # Becomes a list of dictionaries [{},{},{}]
-    all_transactions_dict = {}
 
-    # Add all the values to the dictionary with their respective meanings, adding that dictionary to a list then clearing that dictionary before starting again on a new row
-    for row in cur.execute(query):
-        all_transactions_dict['ID'] = row[0]
-        all_transactions_dict['Type'] = row[1]
-        all_transactions_dict['Category'] = row[2]
-        all_transactions_dict['Amount'] = row[3]
-        all_transactions_dict['Recipient'] = row[4]
-        all_transactions_dict['Date'] = row[5]
-        all_transactions_list.append(all_transactions_dict)
+    def show_all():
+        # Enable the Text widget
+        read_only_text.config(state='normal')
+
+        read_only_text.delete("1.0", END) # Clear the text already there before adding new ones
+
+        query = f'''SELECT ID, Type, Category, Amount, Recipient, tDate FROM PFT
+                    ORDER BY Timestamp;''' # SQL code to collect the neccessary data from the database
+
+        # Creation of the complex data structure
+        all_transactions_list = [] # Becomes a list of dictionaries [{},{},{}] with the for loop below
         all_transactions_dict = {}
 
 
 
+        # Add all the values to the dictionary with their respective meanings, adding that dictionary to a list then clearing that dictionary before starting again on a new row
+        for row in cur.execute(query):
+            all_transactions_dict['ID'] = row[0]
+            all_transactions_dict['Type'] = row[1]
+            all_transactions_dict['Category'] = row[2]
+            all_transactions_dict['Amount'] = row[3]
+            all_transactions_dict['Recipient'] = row[4]
+            all_transactions_dict['Date'] = tkinter_date_conversion(row[5])
+            all_transactions_list.append(all_transactions_dict)
+            all_transactions_dict = {}
+
+        count = 1
+        if len(all_transactions_list) > 0:
+            for row in all_transactions_list: # Collecting all the transactions in the database and inserting them into the text box in a clean format
+                formatted_text = ', '.join(f"{key}: {value}" for key, value in row.items())
+                read_only_text.insert(END, f'{count} |   {formatted_text}\n\n')
+                count += 1
+        else:
+            read_only_text.insert(END, "You Have No Transactions")
+
+        # Disable the Text widget to make it read-only
+        read_only_text.config(state='disabled')
+
+    def printer():
+        # # Enable the Text widget
+        # read_only_text.config(state='normal')
+        
+        document_data = read_only_text.get("1.0",END)
+
+        if document_data.strip() == "":
+            messagebox.showerror("Error", "Please Generate Data To Create The Document")
+        else:
+            # Generate a unique filename using the current timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"PFT_{timestamp}.txt"
+
+            # Write to the new file
+            fhand = open(filename, 'w')
+
+            fhand.write(read_only_text.get("1.0", END))
+
+            fhand.close()
+
+    def bar():
+        if read_only_text.get("1.0", END).strip() == "" or read_only_text.get("1.0",END).strip() == "No Values Match Your Requirements":
+            messagebox.showerror("Error", "No data to work with")
+        else:
+            prompt = '''SELECT tDate, 
+                        Amount 
+                        FROM PFT 
+                        WHERE tDate BETWEEN ? AND ? 
+                        AND Type == ? 
+                        AND Category == ?;'''
+            x = []
+            y = []
+
+            for v in cur.execute(prompt,(sql_date_conversion(start_date_input.get()),sql_date_conversion(end_date_input.get()), drop_down.get(),category_choice.get())):
+                x.append(tkinter_date_conversion(v[0]))
+                y.append(v[1])
+            
+            if len(x) > 0 or len(y) > 0 or len(x) == len(y):
+                plt.figure(figsize=(8, 5))  # Adjust figure size
+                plt.bar(x, y)
+                plt.xticks(rotation=45)  # Rotate x-axis labels to avoid overcrowding
+                plt.tight_layout(rect=[0, 0, 1, 0.95])  # Adjust layout to make room for labels
+                plt.title(f'{drop_down.get()} Graph Between {start_date_input.get()} - {end_date_input.get()} for {category_choice.get()}')
+                plt.show()
+            else:
+                messagebox.showinfo("Error", "No data found for this time period and transaction type.")
+            
+    def pie():
+
+
+        prompt = '''SELECT 
+                    Category, 
+                    (SUM(Amount) * 100.0 / (SELECT SUM(Amount) FROM PFT)) AS Percentage 
+                    FROM PFT
+                    WHERE tDate BETWEEN ? AND ? 
+                    AND Type == ?
+                    GROUP BY Category;'''
+        sizes = []
+        label = []
+
+        for v in cur.execute(prompt,(sql_date_conversion(start_date_input.get()),sql_date_conversion(end_date_input.get()), drop_down.get())):
+            label.append(v[0]) # label
+            sizes.append(round(v[1],2)) # Percentages
+        
+
+        # plt.figure(figsize=(10, 6))  # Adjust figure size
+        plt.pie(sizes,autopct='%1.1f%%', startangle=90) # textprops=dict(color="black"))
+        plt.legend(label)
+        plt.axis('equal')
+        plt.title(drop_down.get())
+        plt.show()
+
+    def exiter():
+        dash.destroy()
+        welcome.deiconify()
+
+    Button(dash, text="Show", font="10", width=10, command= show).grid(row=1,column=7,pady=5)
+    Button(dash, text="Show All", font="10", width=10, command= show_all).grid(row=1,column=8,pady=5)
+    Button(dash, text="Print", font="10", width=10, command= printer).grid(row=2,column=7,pady=5)
+    Button(dash, text="Exit", font="10", width=10, command= exiter).grid(row=2,column=8,pady=5)
+    Button(dash, text="Bar Graph", font="10", width=10, command= bar).grid(row=4,column=1,pady=5)
+    Button(dash, text="Pie Chart", font="10", width=10, command= pie).grid(row=4,column=2,pady=5)
 
     dash.mainloop()
 
