@@ -803,6 +803,7 @@ def transaction_summary_page():
     dash.mainloop()
 
 def delete_transaction_page():
+    welcome.withdraw()
     deletetion_window = Tk()
     deletetion_window.title("Delete Transaction")
     deletetion_window.geometry("800x600")
@@ -870,7 +871,11 @@ def delete_transaction_page():
         present_data()
         connector.commit() # Save the result after deleting the data from the database
 
+    def exiting():
+        deletetion_window.destroy()
+        welcome.deiconify()
     Button(deletetion_window, text="Delete Transaction", font=(10), command=delete_data).grid(row=2,column=5, pady=20, sticky=W)
+    Button(deletetion_window, text="Exit", font=(10), command=exiting).grid(row=2,column=5, pady=20, sticky=W)
 
     deletetion_window.mainloop()
 
