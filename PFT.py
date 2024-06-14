@@ -1,19 +1,25 @@
 from tkinter import *
 from tkinter import messagebox
+from tkinter import font
+from tkinter import ttk
 from tkcalendar import DateEntry
+from datetime import datetime
 import random as r
 import sqlite3
-from datetime import datetime
 import matplotlib.pyplot as plt
-from tkinter import ttk
 
 
 # SQL connection and table creation
 connector = sqlite3.connect('PFT.sqlite')
 cur = connector.cursor()
 
-
-# cur.execute('DROP TABLE IF EXISTS PFT')
+print("We need some information before continuing\nYes or No (Y/N)\n")
+try:
+    neworold = input("Is this your first time opening this Finance Tracker? : ")
+    if neworold.lower().strip() == 'y' or neworold.lower().strip() == 'yes':
+        cur.execute('DROP TABLE IF EXISTS PFT')
+except:
+    pass
 
 try:
     cur.execute('''
@@ -28,13 +34,25 @@ try:
 except:
     pass
 
-tester = input('Would you like tester date? (y/n): ')
+try:
+    tester = input('Would you like tester data: ')
 
-if tester == 'y' or tester == 'yes':
-    fhand = open('test_data.txt', 'r').read()
+    if tester == 'y' or tester == 'yes':
+        fhand = open('test_data.txt', 'r').read()
 
-    cur.execute(fhand)
+        cur.execute(fhand)
+except:
+    pass
 
+def tkinter_date_conversion(sql_date):
+        date_obj = datetime.strptime(sql_date, '%Y-%m-%d') # Convert sql format to datetime object
+        tkinter_date = date_obj.strftime('%d/%m/%Y') # Convert datetime object to standard format
+        return tkinter_date
+
+def sql_date_conversion(tkinter_date):
+        date_obj = datetime.strptime(tkinter_date, '%d/%m/%Y') # Convert tkinter format to datetime object
+        sql_date = date_obj.strftime('%Y-%m-%d') # Convert datetime object to SQL standard format
+        return sql_date
 def get_user_details():
     root = Tk()
     root.title("Login")
@@ -572,22 +590,13 @@ def transaction_summary_page():
 
 
     read_only_text = Text(dash, width=90, height=10, wrap='word', font=('Arial', 12)) # The text box for inserting the transactions
-    # Centering the text
-    read_only_text.tag_configure('center', justify='center')
-    read_only_text.tag_add('center', 1.0, 'end')
+    # # Centering the text
+    # read_only_text.tag_configure('center', justify='center')
+    # read_only_text.tag_add('center', 1.0, 'end')
     read_only_text.grid(row=3, column=1, columnspan=6, pady=20)
     # Disable the Text widget to make it read-only
     read_only_text.config(state='disabled')
 
-    def sql_date_conversion(tkinter_date):
-        date_obj = datetime.strptime(tkinter_date, '%d/%m/%Y') # Convert tkinter format to datetime object
-        sql_date = date_obj.strftime('%Y-%m-%d') # Convert datetime object to SQL standard format
-        return sql_date
-
-    def tkinter_date_conversion(sql_date):
-        date_obj = datetime.strptime(sql_date, '%Y-%m-%d') # Convert sql format to datetime object
-        tkinter_date = date_obj.strftime('%d/%m/%Y') # Convert datetime object to standard format
-        return tkinter_date
 
     def show():
         # Disable the Text widget to make it read-only
@@ -794,7 +803,76 @@ def transaction_summary_page():
     dash.mainloop()
 
 def delete_transaction_page():
-    print('Deletion Page')
+    deletetion_window = Tk()
+    deletetion_window.title("Delete Transaction")
+    deletetion_window.geometry("800x600")
+
+    deletetion_window.columnconfigure(0, weight=1)
+    deletetion_window.columnconfigure(8,weight=1)
+
+    # Create a font with underline and bold
+    bold_underlined_font = font.Font(deletetion_window, family="Helvetica", size=12, weight="bold", underline=1) 
+
+    Label(deletetion_window, text="Please Choose a transaction based of its ID", font=bold_underlined_font).grid(row=0, column=1, columnspan=6, pady=20)
+
+    read_only_text = Text(deletetion_window, width=90, height=10, wrap='word', font=('Arial', 12))
+    read_only_text.grid(row=1, column=1, padx=5, pady=5, columnspan=6)
+    read_only_text.config(state='disabled')
+
+    def present_data():
+        read_only_text.config(state='normal')
+        read_only_text.delete("1.0", END) # Clear the text already there before adding new ones
+
+        query = f'''SELECT ID, Type, Category, Amount, Recipient, tDate FROM PFT
+                    ORDER BY Timestamp;''' # SQL code to collect the neccessary data from the database
+
+        # Creation of the complex data structure
+        all_transactions_list = [] # Becomes a list of dictionaries [{},{},{}] with the for loop below
+        all_transactions_dict = {}
+
+
+
+        # Add all the values to the dictionary with their respective meanings, adding that dictionary to a list then clearing that dictionary before starting again on a new row
+        for row in cur.execute(query):
+            all_transactions_dict['ID'] = row[0]
+            all_transactions_dict['Type'] = row[1]
+            all_transactions_dict['Category'] = row[2]
+            all_transactions_dict['Amount'] = row[3]
+            all_transactions_dict['Recipient'] = row[4]
+            all_transactions_dict['Date'] = tkinter_date_conversion(row[5])
+            all_transactions_list.append(all_transactions_dict)
+            all_transactions_dict = {}
+
+        count = 1
+        if len(all_transactions_list) > 0:
+            for row in all_transactions_list: # Collecting all the transactions in the database and inserting them into the text box in a clean format
+                read_only_text.config(state='normal')
+                formatted_text = ', '.join(f"{key}: {value}" for key, value in row.items())
+                read_only_text.insert(END, f'{count} |   {formatted_text}\n\n')
+                # Disable the Text widget to make it read-only
+                read_only_text.config(state='disabled')
+                count += 1
+        else:
+            read_only_text.insert(END, "You Have No Transactions")
+
+    present_data()
+    transaction_id = Entry(deletetion_window, width=20)
+    transaction_id.grid(row=2, column=4)
+    def delete_data():
+        try:
+            deleting_id = int(transaction_id.get())
+
+            query = 'DELETE FROM PFT WHERE ID == ?;' # SQL code to delete the selected transaction
+
+            cur.execute(query,(deleting_id,))
+        except:
+            messagebox.showerror("Error", "Please Enter a Valid ID")
+        present_data()
+        connector.commit() # Save the result after deleting the data from the database
+
+    Button(deletetion_window, text="Delete Transaction", font=(10), command=delete_data).grid(row=2,column=5, pady=20, sticky=W)
+
+    deletetion_window.mainloop()
 
 
 Button(welcome, text= 'Add Transaction', command= add_transaction_page).grid(row=4,column=3)
