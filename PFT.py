@@ -11,9 +11,16 @@ import re
 import pandas as pd
 
 
-# SQL connection and table creation
+# SQL connection for user_details
 connector = sqlite3.connect('PFT.sqlite')
 cur = connector.cursor()
+
+
+# SQL connection fo user_details
+ud_connector = sqlite3.connect('details.sqlite')
+ud_cur = ud_connector.cursor()
+
+userdetails_connector = sqlite3.connect
 
 form_window = Tk()
 
@@ -61,19 +68,30 @@ def get_old_user_details():
     password.grid(row=1, column=2, columnspan=3)
 
     def submit():
-        global username
-        global verified
-        username = user_name.get()
-        password_value = password.get()
-        if username.strip() != "admin" or password_value.strip() != "admin":
-            # If either field is empty, show an error message
+
+        global username # Username to be used in other places
+        username = user_name.get() # Get the username
+        password_value = password.get() # Get the password
+        ud_dict = dict() # Dictionary for all the usernames and password
+
+        for v in ud_cur.execute('''SELECT * FROM user_details
+                                ORDER BY timestamp'''): 
+            ud_dict[v[3]] = v[4] # Update the dictionary
+        
+        try:
+            user_pass = ud_dict[username.strip()] # Check to see if the username has a password which would verify if it is a real username
+        except:
+            # show an error message if there is no username of that database
             error_label.config(text="Please fill in both fields correctly.", fg="red")
-            verified = False # If the value's there are not 
-        else:
-            # If both fields are filled, clear the error message and close the window
-            error_label.config(text="")
-            root.destroy()
-            verified = True
+        try:
+            if password_value == user_pass:
+                # If both fields are filled, clear the error message and close the window
+                error_label.config(text="")
+                root.destroy()
+            else:
+                error_label.config(text="Username or Password Incorrect.", fg="red")
+        except:
+            pass
     
     def clear():
         user_name.delete(0, END)
@@ -92,12 +110,100 @@ def get_old_user_details():
     except:
         messagebox.showerror("Error", "Please Enter Your Username and Password")
 
+def registering():
+    # Create the main window
+    registeration = Tk()
+    registeration.title("Registration Page")
+    registeration.geometry("400x200")
+
+    # Define variables to hold the entered values
+    first_name_var = StringVar()
+    last_name_var = StringVar()
+    username_var = StringVar()
+    password_var = StringVar()
+    email_var = StringVar()
+
+
+    # Create entry fields and labels for username, password, and email
+    # First Name
+    first_name_label = ttk.Label(registeration, text="First Name") # ttk. Looks better so we use it here and through out registration process
+    first_name_label.grid(row=0, column=0, padx=10, pady=5, sticky="W")
+    first_name_entry = ttk.Entry(registeration, textvariable=first_name_var)
+    first_name_entry.grid(row=0, column=1, padx=10, pady=5)
+
+    # Last Name
+    last_name_label = ttk.Label(registeration, text="Last Name") # ttk. Looks better so we use it here and through out registration process
+    last_name_label.grid(row=1, column=0, padx=10, pady=5, sticky="W")
+    last_name_entry = ttk.Entry(registeration, textvariable=last_name_var)
+    last_name_entry.grid(row=1, column=1, padx=10, pady=5)
+
+    # Username
+    username_label = ttk.Label(registeration, text="Username") # ttk. Looks better so we use it here and through out registration process
+    username_label.grid(row=2, column=0, padx=10, pady=5, sticky="W")
+    username_entry = ttk.Entry(registeration, textvariable=username_var)
+    username_entry.grid(row=2, column=1, padx=10, pady=5)
+
+    # Password
+    password_label = ttk.Label(registeration, text="Password")
+    password_label.grid(row=3, column=0, padx=10, pady=5, sticky="W")
+    password_entry = ttk.Entry(registeration, textvariable=password_var, show='*')
+    password_entry.grid(row=3, column=1, padx=10, pady=5)
+
+    # Show Password
+    def toggle_password():
+        if password_entry.cget('show') == '': # Check to see if the password is currently visible
+            password_entry.config(show='*') # Make it hidden
+        else:
+            password_entry.config(show='') # Make it visible
+
+    show_password_var = BooleanVar()
+    show_password_checkbutton = ttk.Checkbutton(registeration, text="Show Password", variable=show_password_var, command=toggle_password)
+    show_password_checkbutton.grid(row=3, column=2, padx=10, pady=5)
+
+    # Email
+    email_label = ttk.Label(registeration, text="Email")
+    email_label.grid(row=4, column=0, padx=10, pady=5, sticky="W")
+    email_entry = ttk.Entry(registeration, textvariable=email_var)
+    email_entry.grid(row=4, column=1, padx=10, pady=5)
+
+    # Function to handle form submission
+    def submit():
+        first_name = first_name_var.get()
+        last_name = last_name_var.get()
+        username = username_var.get()
+        password = password_var.get()
+        email = email_var.get()
+
+        if username.strip() and password.strip() and email.strip() and first_name.strip() and last_name.strip():
+            ud_cur.execute('''
+                        INSERT INTO user_details (first_name, last_name, username, password, email, timestamp)
+                        VALUES (?, ?, ?, ?, ?, ?)''', (first_name.strip(), last_name.strip(), username.strip(), password, email.strip(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        
+        # Clear the entries after submission
+        first_name_var.set("")
+        last_name_var.set("")
+        username_var.set("")
+        password_var.set("")
+        email_var.set("")
+        ud_connector.commit()
+        registeration.destroy()
+
+    # Add a submit button
+    submit_button = ttk.Button(registeration, text="Submit", command=submit)
+    submit_button.grid(row=5, columnspan=2, pady=20)
+
+    # Run the main event loop
+    registeration.mainloop()
+
 
 def done():
     choice_one, choice_two = selected_option.get(), selected_option_2.get()
     form_window.destroy()
+    global user
 
-    if choice_one == "1":
+    if choice_one == "1": # User picks yes meaning its their first time opening the PFT so new database and registration page implemented here
+        registering()
+        user = get_old_user_details()
         cur.execute('DROP TABLE IF EXISTS PFT')
         cur.execute('''
         CREATE TABLE PFT (
@@ -107,10 +213,9 @@ def done():
                     Amount INTEGER,
                     Recipient TEXT,
                     tDate TEXT,
-                    Timestamp TEXT)''') #sqlite3 date format is yyyy-mm-dd, but we want dd-mm-yyyy so we leave it as text
+                    Timestamp TEXT)''') #sqlite3 date format is yyyy-mm-dd, but we want dd-mm-yyyy so we leave it as text  
     else:
         try:
-            global user
             user = get_old_user_details()
         except:
             quit()
@@ -122,12 +227,25 @@ def done():
             cur.execute(fhand)
         except:
             pass
+    else:
+        fhand = open('test_data.txt', 'r').readlines()
+
+        for v in fhand:
+            try:
+                id = v[1:5]
+                id = int(id)
+            except:
+                continue
+            cur.execute('''DELETE FROM PFT WHERE ID = ? ''',(id,))
+
     try:
         form_window.destroy()
     except:
         pass
+    connector.commit()
+    
 
-Button(form_window, text="Done", command= done, font=10,).grid(row=7, pady=10)
+Button(form_window, text="Submit", command= done).grid(row=7, pady=10)
 
 
 form_window.mainloop()
@@ -146,7 +264,8 @@ def sql_date_conversion(tkinter_date):
 
 transaction_detail = {}
 
-
+if not user:
+    quit()
 
 welcome = Tk()
 welcome.title("Personal Finance Tracker")
@@ -653,7 +772,7 @@ def transaction_summary_page():
         except:
             pass
         if utype == "Income or Expense":
-            messagebox.showerror("Sorry", "You need to pick a class")
+            messagebox.showerror("Sorry", "You need to pick a Type")
         if utype.lower() == "income" and recipient == "":
 
             query = f'''
@@ -858,8 +977,8 @@ def transaction_summary_page():
             
     def pie():
 
-        if drop_down.get() == "Income or Expense":
-            messagebox.showerror("Error", "Please Choose a Class")
+        if drop_down.get() == "Income or Expense" or drop_down.get().strip() == "" or drop_down.get().strip() != "Income" and drop_down.get().strip() != "Expense":
+            messagebox.showerror("Error", "Please Choose a Type")
         else:
             prompt = '''SELECT 
                         Category, 
@@ -874,8 +993,8 @@ def transaction_summary_page():
             for v in cur.execute(prompt,(sql_date_conversion(start_date_input.get()),sql_date_conversion(end_date_input.get()), drop_down.get())):
                 label.append(v[0]) # label
                 sizes.append(round(v[1],2)) # Percentages
-            
 
+            show()
             # plt.figure(figsize=(10, 6))  # Adjust figure size
             plt.pie(sizes,autopct='%1.1f%%', startangle=90) # textprops=dict(color="black"))
             plt.legend(label)
@@ -884,7 +1003,7 @@ def transaction_summary_page():
             plt.show()
 
     def exiter():
-        verification = messagebox.askyesno("Wait", "Are you sure you want to print this data?")
+        verification = messagebox.askyesno("Wait", "Are you sure you want to leave this page")
         if verification:
             dash.destroy()
             welcome.deiconify()
@@ -964,17 +1083,17 @@ def delete_transaction_page():
                     query = 'DELETE FROM PFT WHERE ID == ?;' # SQL code to delete the selected transaction
 
                     cur.execute(query,(deleting_id,))
+                    update_welcome_page()
+                    present_data()
+                    messagebox.showinfo("Thank You", "Transaction Deleted Succesfully!!")
                 else:
                     messagebox.showerror("Error", "Please Input a 4 digit Transaction ID!")
             except:
                 messagebox.showerror("Error", "Please Enter a Valid ID")
-            update_welcome_page()
-            present_data()
-            messagebox.showinfo("Thank You", "Transaction Deleted Succesfully!!")
             connector.commit() # Save the result after deleting the data from the database
 
     def exiting():
-        verification = messagebox.askyesno("Wait", "Are you sure you want to print this data?")
+        verification = messagebox.askyesno("Wait", "Are you sure you want to Leave this page?")
         if verification == 'yes':
             deletetion_window.destroy()
             welcome.deiconify()
