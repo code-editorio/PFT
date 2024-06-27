@@ -7,53 +7,44 @@ from datetime import datetime
 import random as r
 import sqlite3
 import matplotlib.pyplot as plt
+import re
+import pandas as pd
 
 
 # SQL connection and table creation
 connector = sqlite3.connect('PFT.sqlite')
 cur = connector.cursor()
 
-print("We need some information before continuing\nYes or No (Y/N)\n")
-try:
-    neworold = input("Is this your first time opening this Finance Tracker? : ")
-    if neworold.lower().strip() == 'y' or neworold.lower().strip() == 'yes':
-        cur.execute('DROP TABLE IF EXISTS PFT')
-except:
-    pass
+form_window = Tk()
 
-try:
-    cur.execute('''
-    CREATE TABLE PFT (
-                ID INTEGER PRIMARY KEY, 
-                Type TEXT, 
-                Category TEXT, 
-                Amount INTEGER,
-                Recipient TEXT,
-                tDate TEXT,
-                Timestamp TEXT)''') #sqlite3 date format is yyyy-mm-dd, but we want dd-mm-yyyy so we leave it as text
-except:
-    pass
 
-try:
-    tester = input('Would you like tester data: ')
+ttk.Label(form_window, text="We need some information before continuing (Yes or No)",  font=("Arial 12 bold")).grid(row=0, pady=20)
+ttk.Label(form_window, text="1. Is this your first time opening this Finance Tracker?").grid(row=1, sticky=W)
 
-    if tester == 'y' or tester == 'yes':
-        fhand = open('test_data.txt', 'r').read()
+# Define a variable to hold the selected value
+selected_option = StringVar()
+selected_option.set(1)
 
-        cur.execute(fhand)
-except:
-    pass
 
-def tkinter_date_conversion(sql_date):
-        date_obj = datetime.strptime(sql_date, '%Y-%m-%d') # Convert sql format to datetime object
-        tkinter_date = date_obj.strftime('%d/%m/%Y') # Convert datetime object to standard format
-        return tkinter_date
+yes_radio_1 = ttk.Radiobutton(form_window, text="Yes", variable=selected_option, value="1")
+yes_radio_1.grid(row=2, sticky= W)
+no_radio_1 = ttk.Radiobutton(form_window, text="No", variable=selected_option, value="0")
+no_radio_1.grid(row=3, sticky= W)
 
-def sql_date_conversion(tkinter_date):
-        date_obj = datetime.strptime(tkinter_date, '%d/%m/%Y') # Convert tkinter format to datetime object
-        sql_date = date_obj.strftime('%Y-%m-%d') # Convert datetime object to SQL standard format
-        return sql_date
-def get_user_details():
+
+ttk.Label(form_window, text='2. Would you like tester data?').grid(row=4, sticky=W, pady=10)
+# Define a variable to hold the selected value
+selected_option_2 = StringVar()
+selected_option_2.set(1)
+
+
+yes_radio_2 = ttk.Radiobutton(form_window, text="Yes", variable=selected_option_2, value="1")
+yes_radio_2.grid(row=5, sticky= W)
+no_radio_2 = ttk.Radiobutton(form_window, text="No", variable=selected_option_2, value="0")
+no_radio_2.grid(row=6, sticky= W)
+
+def get_old_user_details():
+
     root = Tk()
     root.title("Login")
     root.geometry("200x100")
@@ -71,22 +62,25 @@ def get_user_details():
 
     def submit():
         global username
+        global verified
         username = user_name.get()
         password_value = password.get()
-        if username.strip() == "" or password_value.strip() == "":
+        if username.strip() != "admin" or password_value.strip() != "admin":
             # If either field is empty, show an error message
-            error_label.config(text="Please fill in both fields.", fg="red")
+            error_label.config(text="Please fill in both fields correctly.", fg="red")
+            verified = False # If the value's there are not 
         else:
             # If both fields are filled, clear the error message and close the window
             error_label.config(text="")
             root.destroy()
+            verified = True
     
     def clear():
         user_name.delete(0, END)
         password.delete(0, END)
 
     error_label = Label(root, text="", fg="red")
-    error_label.grid(row=3, column=1, columnspan=2)
+    error_label.grid(row=3, column=1, columnspan=3)
 
     Button(root, padx=10, text="Submit", command=submit).grid(row=2, column=2)
     Button(root, padx=10, text="Clear", command=clear).grid(row=2, column=3)
@@ -96,13 +90,59 @@ def get_user_details():
     try:
         return username
     except:
-        print("Please Enter Your Username and Password")
+        messagebox.showerror("Error", "Please Enter Your Username and Password")
 
-user = get_user_details()
 
-if user == None:
-    quit()
+def done():
+    choice_one, choice_two = selected_option.get(), selected_option_2.get()
+    form_window.destroy()
 
+    if choice_one == "1":
+        cur.execute('DROP TABLE IF EXISTS PFT')
+        cur.execute('''
+        CREATE TABLE PFT (
+                    ID INTEGER PRIMARY KEY, 
+                    Type TEXT, 
+                    Category TEXT, 
+                    Amount INTEGER,
+                    Recipient TEXT,
+                    tDate TEXT,
+                    Timestamp TEXT)''') #sqlite3 date format is yyyy-mm-dd, but we want dd-mm-yyyy so we leave it as text
+    else:
+        try:
+            global user
+            user = get_old_user_details()
+        except:
+            quit()
+
+    if choice_two == "1":
+        fhand = open('test_data.txt', 'r').read()
+
+        try:
+            cur.execute(fhand)
+        except:
+            pass
+    try:
+        form_window.destroy()
+    except:
+        pass
+
+Button(form_window, text="Done", command= done, font=10,).grid(row=7, pady=10)
+
+
+form_window.mainloop()
+
+
+
+def tkinter_date_conversion(sql_date):
+    date_obj = datetime.strptime(sql_date, '%Y-%m-%d') # Convert sql format to datetime object
+    tkinter_date = date_obj.strftime('%d/%m/%Y') # Convert datetime object to standard format
+    return tkinter_date
+
+def sql_date_conversion(tkinter_date):
+    date_obj = datetime.strptime(tkinter_date, '%d/%m/%Y') # Convert tkinter format to datetime object
+    sql_date = date_obj.strftime('%Y-%m-%d') # Convert datetime object to SQL standard format
+    return sql_date
 
 transaction_detail = {}
 
@@ -613,9 +653,9 @@ def transaction_summary_page():
         except:
             pass
         if utype == "Income or Expense":
-            messagebox.showinfo("Sorry", "You need to pick a class")
-
+            messagebox.showerror("Sorry", "You need to pick a class")
         if utype.lower() == "income" and recipient == "":
+
             query = f'''
                 SELECT ID, Type, Category, Amount, Recipient, tDate FROM PFT
                 WHERE tDate BETWEEN ? AND ? AND
@@ -669,7 +709,7 @@ def transaction_summary_page():
             if len(all_transactions_list) > 0:
                 for row in all_transactions_list: # Collecting all the transactions in the database and inserting them into the text box in a clean format
                     formatted_text = ', '.join(f"{key}: {value}" for key, value in row.items())
-                    read_only_text.insert(END, f'{count} |   {formatted_text}\n\n')
+                    read_only_text.insert(END, f'{count} |\t{formatted_text}\n\n')
                     count += 1
             else:
                 read_only_text.insert(END, "No Values Match Your Requirements")
@@ -709,7 +749,7 @@ def transaction_summary_page():
         if len(all_transactions_list) > 0:
             for row in all_transactions_list: # Collecting all the transactions in the database and inserting them into the text box in a clean format
                 formatted_text = ', '.join(f"{key}: {value}" for key, value in row.items())
-                read_only_text.insert(END, f'{count} |   {formatted_text}\n\n')
+                read_only_text.insert(END, f'{count} |\t{formatted_text}\n\n')
                 count += 1
         else:
             read_only_text.insert(END, "You Have No Transactions")
@@ -718,28 +758,80 @@ def transaction_summary_page():
         read_only_text.config(state='disabled')
 
     def printer():
-        # # Enable the Text widget
-        # read_only_text.config(state='normal')
-        
-        document_data = read_only_text.get("1.0",END)
 
-        if document_data.strip() == "":
-            messagebox.showerror("Error", "Please Generate Data To Create The Document")
-        else:
-            # Generate a unique filename using the current timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"PFT_{timestamp}.txt"
+        verification = messagebox.askyesno("Wait", "Are you sure you want to print this data?")
 
-            # Write to the new file
-            fhand = open(filename, 'w')
+        if verification:
+            # # Enable the Text widget
+            # read_only_text.config(state='normal')
 
-            fhand.write(read_only_text.get("1.0", END))
+            document_data = read_only_text.get("1.0",END)
 
-            fhand.close()
+            if document_data.strip() == "":
+                messagebox.showerror("Error", "Please Generate Data To Create The Document")
+            else:
+                # Regular expression to match the values after each colon
+                pattern = r':\S*([^,]+)'
+
+                data = list()
+                trans_id = list()
+                trans_type = list()
+                trans_category = list()
+                trans_amount = list()
+                trans_recipient = list()
+                trans_date = list()
+
+                tester = list()
+                read_only_data = read_only_text.get("1.0", END).strip("\n").split("\n\n")
+
+                for v in read_only_data:
+                    try:
+                        tester.append([v.split("\t")[1]])
+                    except:
+                        pass
+                
+
+                for v in tester:
+                    line = ', '.join(v)
+                    try:
+                        # Find all matches
+                        matches = re.findall(pattern, line)
+                        data.append(matches)
+                    except:
+                        pass
+
+                # Print the extracted values
+                for match in data:
+                    trans_id.append(match[0].strip())
+                    trans_type.append(match[1].strip())
+                    trans_category.append(match[2].strip())
+                    trans_amount.append(match[3].strip())
+                    trans_recipient.append(match[4].strip())
+                    trans_date.append(match[5].strip())
+
+                csv_data = {
+                    "Transaction ID": trans_id,
+                    "Transaction Type": trans_type,
+                    "Transaction Category": trans_category,
+                    "Transaction Amount": trans_amount,
+                    "Transaction Recipient": trans_recipient,
+                    "Transaction Date": trans_date
+                }
+
+                df = pd.DataFrame(csv_data)
+
+                # Export the DataFrame to a CSV file
+                # Generate a unique filename using the current timestamp
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{user.capitalize()}_PFT_{timestamp}.csv"
+
+                df.to_csv(filename, index=False)
+                messagebox.showinfo("Thank You", "Statement Printed out Successfully. Please Check Your Folder!")
+
 
     def bar():
-        if read_only_text.get("1.0", END).strip() == "" or read_only_text.get("1.0",END).strip() == "No Values Match Your Requirements":
-            messagebox.showerror("Error", "No data to work with")
+        if drop_down.get() == "Income or Expense":
+            messagebox.showerror("Error", "No data to work with. Try picking a Type")
         else:
             prompt = '''SELECT tDate, 
                         Amount 
@@ -766,32 +858,36 @@ def transaction_summary_page():
             
     def pie():
 
+        if drop_down.get() == "Income or Expense":
+            messagebox.showerror("Error", "Please Choose a Class")
+        else:
+            prompt = '''SELECT 
+                        Category, 
+                        (SUM(Amount) * 100.0 / (SELECT SUM(Amount) FROM PFT)) AS Percentage 
+                        FROM PFT
+                        WHERE tDate BETWEEN ? AND ? 
+                        AND Type == ?
+                        GROUP BY Category;'''
+            sizes = []
+            label = []
 
-        prompt = '''SELECT 
-                    Category, 
-                    (SUM(Amount) * 100.0 / (SELECT SUM(Amount) FROM PFT)) AS Percentage 
-                    FROM PFT
-                    WHERE tDate BETWEEN ? AND ? 
-                    AND Type == ?
-                    GROUP BY Category;'''
-        sizes = []
-        label = []
+            for v in cur.execute(prompt,(sql_date_conversion(start_date_input.get()),sql_date_conversion(end_date_input.get()), drop_down.get())):
+                label.append(v[0]) # label
+                sizes.append(round(v[1],2)) # Percentages
+            
 
-        for v in cur.execute(prompt,(sql_date_conversion(start_date_input.get()),sql_date_conversion(end_date_input.get()), drop_down.get())):
-            label.append(v[0]) # label
-            sizes.append(round(v[1],2)) # Percentages
-        
-
-        # plt.figure(figsize=(10, 6))  # Adjust figure size
-        plt.pie(sizes,autopct='%1.1f%%', startangle=90) # textprops=dict(color="black"))
-        plt.legend(label)
-        plt.axis('equal')
-        plt.title(drop_down.get())
-        plt.show()
+            # plt.figure(figsize=(10, 6))  # Adjust figure size
+            plt.pie(sizes,autopct='%1.1f%%', startangle=90) # textprops=dict(color="black"))
+            plt.legend(label)
+            plt.axis('equal')
+            plt.title(drop_down.get())
+            plt.show()
 
     def exiter():
-        dash.destroy()
-        welcome.deiconify()
+        verification = messagebox.askyesno("Wait", "Are you sure you want to print this data?")
+        if verification:
+            dash.destroy()
+            welcome.deiconify()
 
     Button(dash, text="Show", font="10", width=10, command= show).grid(row=1,column=7,pady=5)
     Button(dash, text="Show All", font="10", width=10, command= show_all).grid(row=1,column=8,pady=5)
@@ -860,22 +956,30 @@ def delete_transaction_page():
     transaction_id = Entry(deletetion_window, width=20)
     transaction_id.grid(row=2, column=4)
     def delete_data():
-        try:
-            deleting_id = int(transaction_id.get())
+        verification = messagebox.askyesno("Wait", "Are you sure you want delete this transaction?")
+        if verification:
+            try:
+                deleting_id = int(transaction_id.get())
+                if len(deleting_id) == 4:
+                    query = 'DELETE FROM PFT WHERE ID == ?;' # SQL code to delete the selected transaction
 
-            query = 'DELETE FROM PFT WHERE ID == ?;' # SQL code to delete the selected transaction
-
-            cur.execute(query,(deleting_id,))
-        except:
-            messagebox.showerror("Error", "Please Enter a Valid ID")
-        present_data()
-        connector.commit() # Save the result after deleting the data from the database
+                    cur.execute(query,(deleting_id,))
+                else:
+                    messagebox.showerror("Error", "Please Input a 4 digit Transaction ID!")
+            except:
+                messagebox.showerror("Error", "Please Enter a Valid ID")
+            update_welcome_page()
+            present_data()
+            messagebox.showinfo("Thank You", "Transaction Deleted Succesfully!!")
+            connector.commit() # Save the result after deleting the data from the database
 
     def exiting():
-        deletetion_window.destroy()
-        welcome.deiconify()
+        verification = messagebox.askyesno("Wait", "Are you sure you want to print this data?")
+        if verification == 'yes':
+            deletetion_window.destroy()
+            welcome.deiconify()
     Button(deletetion_window, text="Delete Transaction", font=(10), command=delete_data).grid(row=2,column=5, pady=20, sticky=W)
-    Button(deletetion_window, text="Exit", font=(10), command=exiting).grid(row=2,column=5, pady=20, sticky=W)
+    Button(deletetion_window, text="Exit", font=(10), command=exiting).grid(row=2,column=6, pady=20, sticky=W)
 
     deletetion_window.mainloop()
 
