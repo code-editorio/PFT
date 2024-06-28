@@ -15,262 +15,282 @@ import pandas as pd
 connector = sqlite3.connect('PFT.sqlite')
 cur = connector.cursor()
 
+def start():
+    # SQL connection fo user_details
+    ud_connector = sqlite3.connect('details.sqlite')
+    ud_cur = ud_connector.cursor()
 
-# SQL connection fo user_details
-ud_connector = sqlite3.connect('details.sqlite')
-ud_cur = ud_connector.cursor()
-
-userdetails_connector = sqlite3.connect
-
-form_window = Tk()
+    form_window = Tk()
 
 
-ttk.Label(form_window, text="We need some information before continuing (Yes or No)",  font=("Arial 12 bold")).grid(row=0, pady=20)
-ttk.Label(form_window, text="1. Is this your first time opening this Finance Tracker?").grid(row=1, sticky=W)
+    ttk.Label(form_window, text="We need some information before continuing (Yes or No)",  font=("Arial 12 bold")).grid(row=0, pady=20)
+    ttk.Label(form_window, text="1. Is this your first time opening this Finance Tracker?").grid(row=1, sticky=W)
 
-# Define a variable to hold the selected value
-selected_option = StringVar()
-selected_option.set(1)
+    # Variable to hold the selected value
+    selected_option = StringVar()
+    selected_option.set(1)
 
-
-yes_radio_1 = ttk.Radiobutton(form_window, text="Yes", variable=selected_option, value="1")
-yes_radio_1.grid(row=2, sticky= W)
-no_radio_1 = ttk.Radiobutton(form_window, text="No", variable=selected_option, value="0")
-no_radio_1.grid(row=3, sticky= W)
-
-
-ttk.Label(form_window, text='2. Would you like tester data?').grid(row=4, sticky=W, pady=10)
-# Define a variable to hold the selected value
-selected_option_2 = StringVar()
-selected_option_2.set(1)
+    # Radio button giving users the option 2 pick only 1
+    yes_radio_1 = ttk.Radiobutton(form_window, text="Yes", variable=selected_option, value="1")
+    yes_radio_1.grid(row=2, sticky= W)
+    no_radio_1 = ttk.Radiobutton(form_window, text="No", variable=selected_option, value="0")
+    no_radio_1.grid(row=3, sticky= W)
 
 
-yes_radio_2 = ttk.Radiobutton(form_window, text="Yes", variable=selected_option_2, value="1")
-yes_radio_2.grid(row=5, sticky= W)
-no_radio_2 = ttk.Radiobutton(form_window, text="No", variable=selected_option_2, value="0")
-no_radio_2.grid(row=6, sticky= W)
+    ttk.Label(form_window, text='2. Would you like tester data?').grid(row=4, sticky=W, pady=10)
 
-def get_old_user_details():
+    # Variable to hold the selected value
+    selected_option_2 = StringVar()
+    selected_option_2.set(1)
 
-    root = Tk()
-    root.title("Login")
-    root.geometry("200x100")
-    # root.resizable(False,False)
+    # Radio button giving users the option 2 pick only 1
+    yes_radio_2 = ttk.Radiobutton(form_window, text="Yes", variable=selected_option_2, value="1")
+    yes_radio_2.grid(row=5, sticky= W)
+    no_radio_2 = ttk.Radiobutton(form_window, text="No", variable=selected_option_2, value="0")
+    no_radio_2.grid(row=6, sticky= W)
 
-    root.grid_columnconfigure(0, weight=1)
-    root.grid_columnconfigure(5, weight=1)
+    def get_old_user_details():
 
-    Label(root, text="Username: ").grid(column=1, row=0)
-    user_name = Entry(root)
-    user_name.grid(row=0, column=2, columnspan=3)
-    Label(root, text="Password: ").grid(row=1, column=1)
-    password = Entry(root, show="*")
-    password.grid(row=1, column=2, columnspan=3)
+        root = Tk()
+        root.title("Login")
+        root.geometry("200x100")
+        # root.resizable(False,False)
 
-    def submit():
+        root.grid_columnconfigure(0, weight=1)
+        root.grid_columnconfigure(5, weight=1)
 
-        global username # Username to be used in other places
-        username = user_name.get() # Get the username
-        password_value = password.get() # Get the password
-        ud_dict = dict() # Dictionary for all the usernames and password
+        # Widgets to allow users to type thier passswords and username
+        Label(root, text="Username: ").grid(column=1, row=0)
+        user_name = Entry(root)
+        user_name.grid(row=0, column=2, columnspan=3)
+        Label(root, text="Password: ").grid(row=1, column=1)
+        password = Entry(root, show="*")
+        password.grid(row=1, column=2, columnspan=3)
 
-        for v in ud_cur.execute('''SELECT * FROM user_details
-                                ORDER BY timestamp'''): 
-            ud_dict[v[3]] = v[4] # Update the dictionary
-        
-        try:
-            user_pass = ud_dict[username.strip()] # Check to see if the username has a password which would verify if it is a real username
-        except:
-            # show an error message if there is no username of that database
-            error_label.config(text="Please fill in both fields correctly.", fg="red")
-        try:
-            if password_value == user_pass:
-                # If both fields are filled, clear the error message and close the window
-                error_label.config(text="")
-                root.destroy()
-            else:
-                error_label.config(text="Username or Password Incorrect.", fg="red")
-        except:
-            pass
-    
-    def clear():
-        user_name.delete(0, END)
-        password.delete(0, END)
+        def submit():
 
-    error_label = Label(root, text="", fg="red")
-    error_label.grid(row=3, column=1, columnspan=3)
+            global username # Username to be used in other places
+            username = user_name.get() # Get the username
+            password_value = password.get() # Get the password
+            ud_dict = dict() # Dictionary for all the usernames and password
 
-    Button(root, padx=10, text="Submit", command=submit).grid(row=2, column=2)
-    Button(root, padx=10, text="Clear", command=clear).grid(row=2, column=3)
-
-
-    root.mainloop()
-    try:
-        return username
-    except:
-        messagebox.showerror("Error", "Please Enter Your Username and Password")
-
-def registering():
-    # Create the main window
-    registeration = Tk()
-    registeration.title("Registration Page")
-    registeration.geometry("400x200")
-
-    # Define variables to hold the entered values
-    first_name_var = StringVar()
-    last_name_var = StringVar()
-    username_var = StringVar()
-    password_var = StringVar()
-    email_var = StringVar()
-
-
-    # Create entry fields and labels for username, password, and email
-    # First Name
-    first_name_label = ttk.Label(registeration, text="First Name") # ttk. Looks better so we use it here and through out registration process
-    first_name_label.grid(row=0, column=0, padx=10, pady=5, sticky="W")
-    first_name_entry = ttk.Entry(registeration, textvariable=first_name_var)
-    first_name_entry.grid(row=0, column=1, padx=10, pady=5)
-
-    # Last Name
-    last_name_label = ttk.Label(registeration, text="Last Name") # ttk. Looks better so we use it here and through out registration process
-    last_name_label.grid(row=1, column=0, padx=10, pady=5, sticky="W")
-    last_name_entry = ttk.Entry(registeration, textvariable=last_name_var)
-    last_name_entry.grid(row=1, column=1, padx=10, pady=5)
-
-    # Username
-    username_label = ttk.Label(registeration, text="Username") # ttk. Looks better so we use it here and through out registration process
-    username_label.grid(row=2, column=0, padx=10, pady=5, sticky="W")
-    username_entry = ttk.Entry(registeration, textvariable=username_var)
-    username_entry.grid(row=2, column=1, padx=10, pady=5)
-
-    # Password
-    password_label = ttk.Label(registeration, text="Password")
-    password_label.grid(row=3, column=0, padx=10, pady=5, sticky="W")
-    password_entry = ttk.Entry(registeration, textvariable=password_var, show='*')
-    password_entry.grid(row=3, column=1, padx=10, pady=5)
-
-    # Show Password
-    def toggle_password():
-        if password_entry.cget('show') == '': # Check to see if the password is currently visible
-            password_entry.config(show='*') # Make it hidden
-        else:
-            password_entry.config(show='') # Make it visible
-
-    show_password_var = BooleanVar()
-    show_password_checkbutton = ttk.Checkbutton(registeration, text="Show Password", variable=show_password_var, command=toggle_password)
-    show_password_checkbutton.grid(row=3, column=2, padx=10, pady=5)
-
-    # Email
-    email_label = ttk.Label(registeration, text="Email")
-    email_label.grid(row=4, column=0, padx=10, pady=5, sticky="W")
-    email_entry = ttk.Entry(registeration, textvariable=email_var)
-    email_entry.grid(row=4, column=1, padx=10, pady=5)
-
-    # Function to handle form submission
-    def submit():
-        first_name = first_name_var.get()
-        last_name = last_name_var.get()
-        username = username_var.get()
-        password = password_var.get()
-        email = email_var.get()
-
-        if username.strip() and password.strip() and email.strip() and first_name.strip() and last_name.strip():
-            ud_cur.execute('''
-                        INSERT INTO user_details (first_name, last_name, username, password, email, timestamp)
-                        VALUES (?, ?, ?, ?, ?, ?)''', (first_name.strip(), last_name.strip(), username.strip(), password, email.strip(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-        
-        # Clear the entries after submission
-        first_name_var.set("")
-        last_name_var.set("")
-        username_var.set("")
-        password_var.set("")
-        email_var.set("")
-        ud_connector.commit()
-        registeration.destroy()
-
-    # Add a submit button
-    submit_button = ttk.Button(registeration, text="Submit", command=submit)
-    submit_button.grid(row=5, columnspan=2, pady=20)
-
-    # Run the main event loop
-    registeration.mainloop()
-
-
-def done():
-    choice_one, choice_two = selected_option.get(), selected_option_2.get()
-    form_window.destroy()
-    global user
-
-    if choice_one == "1": # User picks yes meaning its their first time opening the PFT so new database and registration page implemented here
-        registering()
-        user = get_old_user_details()
-        cur.execute('DROP TABLE IF EXISTS PFT')
-        cur.execute('''
-        CREATE TABLE PFT (
-                    ID INTEGER PRIMARY KEY, 
-                    Type TEXT, 
-                    Category TEXT, 
-                    Amount INTEGER,
-                    Recipient TEXT,
-                    tDate TEXT,
-                    Timestamp TEXT)''') #sqlite3 date format is yyyy-mm-dd, but we want dd-mm-yyyy so we leave it as text  
-    else:
-        try:
-            user = get_old_user_details()
-        except:
-            quit()
-
-    if choice_two == "1":
-        fhand = open('test_data.txt', 'r').read()
-
-        try:
-            cur.execute(fhand)
-        except:
-            pass
-    else:
-        fhand = open('test_data.txt', 'r').readlines()
-
-        for v in fhand:
+            # Get the username and password from the database ordering by timstamp incase of later implementation of forgot password
+            for v in ud_cur.execute('''SELECT * FROM user_details
+                                    ORDER BY timestamp'''): 
+                ud_dict[v[3]] = v[4] # Update the dictionary
+            
             try:
-                id = v[1:5]
-                id = int(id)
+                user_pass = ud_dict[username.strip()] # Check to see if the username has a password which would verify if it is a real username
             except:
-                continue
-            cur.execute('''DELETE FROM PFT WHERE ID = ? ''',(id,))
+                # show an error message if there is no username of that database
+                error_label.config(text="Please fill in both fields correctly.", fg="red")
+            try:
+                if password_value == user_pass: # If the password given by the user is equal to the password for that user in the database then continue
+                    # If both fields are filled correctly, clear the error message and close the window
+                    error_label.config(text="")
+                    root.destroy()
+                else:
+                    error_label.config(text="Username or Password Incorrect.", fg="red") # Else show them an error
+            except:
+                pass # In the case an error shows up from there being no password given
+        
+        def clear():
+            user_name.delete(0, END)
+            password.delete(0, END)
 
-    try:
+        error_label = Label(root, text="", fg="red")
+        error_label.grid(row=3, column=1, columnspan=3)
+
+        Button(root, padx=10, text="Submit", command=submit).grid(row=2, column=2)
+        Button(root, padx=10, text="Clear", command=clear).grid(row=2, column=3)
+
+
+        root.mainloop()
+        try:
+            return username # Try to return the username from this function
+        except:
+            messagebox.showerror("Error", "Please Enter Your Username and Password") # If an error occurs ask the user to give us details.
+
+    def registering():
+        # Create the main window
+        registeration = Tk()
+        registeration.title("Registration Page")
+        registeration.geometry("400x200")
+
+        # Define variables to hold the entered values
+        first_name_var = StringVar()
+        last_name_var = StringVar()
+        username_var = StringVar()
+        password_var = StringVar()
+        email_var = StringVar()
+
+
+        # Create entry fields and labels for username, password, and email
+        # First Name
+        first_name_label = ttk.Label(registeration, text="First Name") # ttk. Looks better so we use it here and through out registration process
+        first_name_label.grid(row=0, column=0, padx=10, pady=5, sticky="W")
+        first_name_entry = ttk.Entry(registeration, textvariable=first_name_var)
+        first_name_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        # Last Name
+        last_name_label = ttk.Label(registeration, text="Last Name") # ttk. Looks better so we use it here and through out registration process
+        last_name_label.grid(row=1, column=0, padx=10, pady=5, sticky="W")
+        last_name_entry = ttk.Entry(registeration, textvariable=last_name_var)
+        last_name_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        # Username
+        username_label = ttk.Label(registeration, text="Username") # ttk. Looks better so we use it here and through out registration process
+        username_label.grid(row=2, column=0, padx=10, pady=5, sticky="W")
+        username_entry = ttk.Entry(registeration, textvariable=username_var)
+        username_entry.grid(row=2, column=1, padx=10, pady=5)
+
+        # Password
+        password_label = ttk.Label(registeration, text="Password")
+        password_label.grid(row=3, column=0, padx=10, pady=5, sticky="W")
+        password_entry = ttk.Entry(registeration, textvariable=password_var, show='*')
+        password_entry.grid(row=3, column=1, padx=10, pady=5)
+
+        # Show Password
+        def toggle_password():
+            if password_entry.cget('show') == '': # Check to see if the password is currently visible
+                password_entry.config(show='*') # Make it hidden
+            else:
+                password_entry.config(show='') # Make it visible
+
+        show_password_var = BooleanVar() # variable to hold the value of the checkbutton
+        show_password_checkbutton = ttk.Checkbutton(registeration, text="Show Password", variable=show_password_var, command=toggle_password)
+        show_password_checkbutton.grid(row=3, column=2, padx=10, pady=5)
+
+        # Email
+        email_label = ttk.Label(registeration, text="Email")
+        email_label.grid(row=4, column=0, padx=10, pady=5, sticky="W")
+        email_entry = ttk.Entry(registeration, textvariable=email_var)
+        email_entry.grid(row=4, column=1, padx=10, pady=5)
+
+        # Function to handle form submission
+        def submit():
+            # Store the values somewhere
+            first_name = first_name_var.get()
+            last_name = last_name_var.get()
+            username = username_var.get()
+            password = password_var.get()
+            email = email_var.get()
+
+            # if all the entry widgets have values then store it into the database
+            if username.strip() and password.strip() and email.strip() and first_name.strip() and last_name.strip():
+                ud_cur.execute('''
+                            INSERT INTO user_details (first_name, last_name, username, password, email, timestamp)
+                            VALUES (?, ?, ?, ?, ?, ?)''', (first_name.strip(), last_name.strip(), username.strip(), password, email.strip(), datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                messagebox.showinfo('Thank You', 'Details Saved Successfully') # Thank the user for joining the community
+
+                # Clear the entries after submission
+                first_name_var.set("")
+                last_name_var.set("")
+                username_var.set("")
+                password_var.set("")
+                email_var.set("")
+
+                # Save the database
+                ud_connector.commit()
+                registeration.destroy()
+            else:
+                messagebox.showerror('Error', 'Please fill out the form!') # Show an error message
+        
+            
+
+        # Add a submit button
+        submit_button = ttk.Button(registeration, text="Submit", command=submit)
+        submit_button.grid(row=5, columnspan=2, pady=20)
+
+        # Run the main event loop
+        registeration.mainloop()
+        
+
+
+
+
+    def done():
+        choice_one, choice_two = selected_option.get(), selected_option_2.get()
         form_window.destroy()
-    except:
-        pass
-    connector.commit()
-    
+        global user
 
-Button(form_window, text="Submit", command= done).grid(row=7, pady=10)
+        if choice_one == "1": # User picks yes meaning its their first time opening the PFT so new database and registration page implemented here
+            registering()
+            user = get_old_user_details()
+            cur.execute('DROP TABLE IF EXISTS PFT')
+            cur.execute('''
+            CREATE TABLE PFT (
+                        ID INTEGER PRIMARY KEY, 
+                        Type TEXT, 
+                        Category TEXT, 
+                        Amount NUMERIC,
+                        Recipient TEXT,
+                        tDate TEXT,
+                        Timestamp TEXT)''') #sqlite3 date format is yyyy-mm-dd, but we want dd-mm-yyyy so we leave it as text  
+        else: # User already has data in the database so they should use the most recent username and password
+            try:
+                user = get_old_user_details()
+            except:
+                quit() # if the user isnt able to give this data and closes the page or something that would cause an error, end the program
+
+        if choice_two == "1": # If user wants to start the tester data
+            fhand = open('test_data.txt', 'r').read() # read through the whole file as one. File is an SQL code
+            try:
+                cur.execute(fhand.strip("\n")) # Exceute the SQL code
+            except:
+                pass
+
+        else:
+            fhand = open('test_data.txt', 'r').readlines() # Read the file line by line
+
+            # Get the ID of each tester transaction
+            for v in fhand:
+                try:
+                    id = v[1:5]
+                    id = int(id)
+                except:
+                    continue # First line is includes insert and not the ID so skip it
+                cur.execute('''DELETE FROM PFT WHERE ID = ? ''',(id,)) # Delete those rows with these specific ID's
+        connector.commit()
+        
+
+    Button(form_window, text="Submit", command= done).grid(row=7, pady=10)
 
 
-form_window.mainloop()
+    form_window.mainloop()
 
 
-
+# Function to help convert date into a more presentable format for the PFT
 def tkinter_date_conversion(sql_date):
     date_obj = datetime.strptime(sql_date, '%Y-%m-%d') # Convert sql format to datetime object
     tkinter_date = date_obj.strftime('%d/%m/%Y') # Convert datetime object to standard format
     return tkinter_date
 
+# Function to help convert date into the sql default format
 def sql_date_conversion(tkinter_date):
     date_obj = datetime.strptime(tkinter_date, '%d/%m/%Y') # Convert tkinter format to datetime object
     sql_date = date_obj.strftime('%Y-%m-%d') # Convert datetime object to SQL standard format
     return sql_date
 
+start()
+
 transaction_detail = {}
 
-if not user:
-    quit()
+try: # Try to check if user widget has an actual value
+    if not user:
+        quit() # If the widget does not have a value then quit the whole program
+except: # Except is used in the case where the form window is closed which causes prblems in our code
+    valid = False # If that happens then use another way to quit the program 
+try:
+    if not valid: # if the program is no longer valid to be executed
+        quit() # quit the program
+except:
+    pass
 
 welcome = Tk()
 welcome.title("Personal Finance Tracker")
 welcome.geometry("500x500")
-welcome.resizable(False,False)
+welcome.resizable(False,False) # Increasing the size or reducing the size of the window spoils the design. The widget stays in the center but doesnt look as good as it is right now
 
 
 
@@ -283,26 +303,32 @@ Label(welcome, text=f'Welcome To Your Personal Finance Tracker {user.lstrip().st
 
 def get_balance():
     balance = 0
+
+    # Run SQL queries to get sum of amount from the database where the type is income and add to balance
     query = 'SELECT sum(Amount) FROM PFT WHERE Type = "Income"'
     try:
         for n in cur.execute(query):
-            balance += int(n[0])
+            balance += float(n[0])
     except:
         pass
 
+    # Run SQL queries to get sum of amount from the database where the type is expense and subtract from balance
     query2 = 'SELECT sum(Amount) FROM PFT WHERE Type = "Expense"'
     try:
         for n in cur.execute(query2):
-            balance -= int(n[0])
+            balance -= float(n[0])
     except:
         pass
     return balance
 
 def get_last_transaction():
+    # Run SQL query to get all the values from the database ordered by when it entered the database
+
     last_transaction = 'SELECT * FROM PFT ORDER BY Timestamp'
 
     values = []
-    [values.append(n) for n in cur.execute(last_transaction)]
+    [values.append(n) for n in cur.execute(last_transaction)] # add it all to a list
+    # Get the most recent transaction which is the last transaction of the list
     try:
         value = values[-1]
     except:
@@ -323,7 +349,7 @@ def get_last_transaction():
                 elif v == 3:
                     formatted_dict += f'Amount: $ {value[3]}\n\n'
                 # elif v == 4:
-                #     formatted_dict += f'Source: {value[4]}\n\n'
+                #     formatted_dict += f'Source: {value[4]}\n\n' # The Source was not asked for in the question
                 elif v == 5:
                     tdate = value[5]
                     last_transaction_date = datetime.strptime(tdate, "%Y-%m-%d") # Convert the string to a datetime object
@@ -340,7 +366,7 @@ def get_last_transaction():
                 elif v == 3:
                     formatted_dict += f'Amount: $ {value[3]}\n\n'
                 # elif v == 4:
-                #     formatted_dict += f'Payee: {value[4]}\n\n'
+                    # formatted_dict += f'Payee: {value[4]}\n\n' # The Payee was not asked for in the question
                 elif v == 5:
                     tdate = value[5]
                     last_transaction_date = datetime.strptime(tdate, "%Y-%m-%d") # Convert the string to a datetime object
@@ -355,17 +381,17 @@ balance_label = Label(welcome, text = f'Current Account Balance: $ {get_balance(
 balance_label.grid(row=2,column=2, columnspan=5)
 transaction_label = Label(welcome, text= f'Your Last Transaction: \n\n{get_last_transaction()}\n')
 transaction_label.grid(row=3,column=3, columnspan=5)
-def update_welcome_page():
+def update_welcome_page(): # To automatically update the values of the main window (welcoming window)
     balance_label.config(text=f'Current Account Balance: ${get_balance()}')
     transaction_label.config(text=f'Your Last Transaction: \n\n{get_last_transaction()}\n')
 
-def add_transaction_page():
+def add_transaction_page(): # Adding transactions whether income or expense
     
     welcome.withdraw()
     transaction = Tk()
     transaction.title("Add Transaction")
     transaction.geometry("389x218")
-    # transaction.resizable(False,False)
+    transaction.resizable(False,False)
 
     # Configure the grid to have proper weight for centering
     transaction.grid_columnconfigure(0, weight=1)
@@ -377,16 +403,16 @@ def add_transaction_page():
 
         transaction.grid_columnconfigure(0, weight=1)
         transaction.grid_columnconfigure(1, weight=0)
-        transaction.grid_columnconfigure(2, weight=0)
+        transaction.grid_columnconfigure(2, weight=0) # Centers the values with weight 0
         transaction.grid_columnconfigure(3, weight=0)
         transaction.grid_columnconfigure(4, weight=0)
         transaction.grid_columnconfigure(5, weight=1)
 
 
         transaction.geometry("500x319")
-        global transaction_type
+        global transaction_type # Will be used in other functions
         transaction_type = 'Income'
-        incomes_button.grid_forget()
+        incomes_button.grid_forget() # grid_forget used to clear the buttons on the transaction page
         expenses_button.grid_forget()
         transaction_type_label.grid_forget()
         Label(transaction, text='Please Fill Out The Details', font=("Helvetica", 10, "bold underline")).grid(row=0, column=0, columnspan=6, pady=10)
@@ -425,11 +451,13 @@ def add_transaction_page():
             source_input.delete(0,END)
             selected_option.set("Select an option")  # Default Value
 
-        global transaction_amount
+        # Global variable to be used in other functions
+        global transaction_amount 
         global transaction_date
         global transaction_source
         global transaction_category
 
+        # Initially set to None
         transaction_amount = None
         transaction_date = None
         transaction_source = None
@@ -438,6 +466,7 @@ def add_transaction_page():
 
 
         def submit(transaction_dict):
+            # global variables allowing us to use it everywhere
             global transaction_amount
             global transaction_date
             global transaction_source
@@ -450,40 +479,42 @@ def add_transaction_page():
             if result:
                 # Validation
                 try:
-                    transaction_amount = int(amount_input.get())
+                    transaction_amount =float(amount_input.get())
                 except:
                     error_raised = True
-                    messagebox.showerror("Error", "Invalid Amount Format")
+                    messagebox.showerror("Error", "Invalid Amount Format") # Amount must be a float for better precision
                 
                 try:
                     if transaction_amount < 0:
                         error_raised = True
-                        messagebox.showerror("Error", "Amount must be greater than 0")
+                        messagebox.showerror("Error", "Amount must be greater than 0") # No negative numbers
                 except:
                     pass
 
                 try:
                     tkinter_date = date_input.get()
-                    date_obj = datetime.strptime(tkinter_date, '%d/%m/%Y') # Convert tkinter format to datetime object
-                    transaction_date = date_obj.strftime('%Y-%m-%d') # Convert datetime object to SQL standard format
-                    transaction_source = source_input.get()
-                    transaction_category = selected_option.get()
+                    date_obj = datetime.strptime(tkinter_date, '%d/%m/%Y') # Convert tkinter format to datetime object and save it
+                    transaction_date = date_obj.strftime('%Y-%m-%d') # Convert datetime object to SQL standard format and save it
+                    transaction_source = source_input.get() # Save the source
+                    transaction_category = selected_option.get() # Save the category
                 except:
                     error_raised = True
                     messagebox.showerror("Error", "Please fill out all options with the right values")
 
-
+                # Make sure all the data needed to add transaction into the database is filled out and correct
                 if transaction_source != None and transaction_source != "" and selected_option.get() != 'Select an option' and error_raised == False:
                     id_numbers =[]
                     sqlstr = 'SELECT ID FROM PFT'
 
+                    # Making sure there is no repeated ID value
                     for n in cur.execute(sqlstr):
                         id_numbers.append(n[0])
                     while True:
                         transaction_dict['ID'] = r.randint(1000, 9999)
                         if transaction_dict['ID'] not in id_numbers:
                             break
-            
+                    
+                    # Saving the valeus into a dictionary
                     transaction_dict['Type'] = 'Income'
                     transaction_dict['Category'] = transaction_category.capitalize()
                     transaction_dict['Amount'] = transaction_amount
@@ -500,10 +531,10 @@ def add_transaction_page():
                     connector.commit()  # Save the changes to the database
                     # transaction_list.append(transaction_detail)
                     transaction_dict = {}
-                    update_welcome_page()
-                    clear()
-                    transaction.destroy()
-                    welcome.deiconify()
+                    update_welcome_page() # Update the welcoming page with the right values
+                    clear() # Clear the values of the widgets
+                    transaction.destroy() # Close the transaction page
+                    welcome.deiconify() # deiconify used to temporarily close window
                 else:
                     messagebox.showerror("Error", "Please fill out all options with the right values")
             else:
@@ -523,11 +554,11 @@ def add_transaction_page():
         Button(transaction, text='Clear', width=8, command=clear).grid(row=5,column=3)
         Button(transaction, text='Exit', width=8, command=exit_window).grid(row=5,column=4)
 
-    def expense_button():
+    def expense_button(): # Follows the same process as income just with a few changes
 
         transaction.grid_columnconfigure(0, weight=1)
         transaction.grid_columnconfigure(1, weight=0)
-        transaction.grid_columnconfigure(2, weight=0)
+        transaction.grid_columnconfigure(2, weight=0) # Centering col 1 - 4 
         transaction.grid_columnconfigure(3, weight=0)
         transaction.grid_columnconfigure(4, weight=0)
         transaction.grid_columnconfigure(5, weight=1)
@@ -547,7 +578,7 @@ def add_transaction_page():
 
 
         # List of options for the dropdown menu
-        income_category_options = ["Food", "Rent", "Clothing", "Car", "Health", "Others"]
+        income_category_options = ["Food", "Rent", "Clothing", "Car", "Health", "Others"] # options for expenses
 
 
         Label(transaction, text='Category:').grid(row=1, column=1)
@@ -598,7 +629,7 @@ def add_transaction_page():
 
             if result:
                 try:
-                    transaction_amount = int(amount_input.get())
+                    transaction_amount = float(amount_input.get())
                 except:
                     error_raised = True
                     messagebox.showerror("Error", "Invalid Amount Format")
@@ -690,10 +721,6 @@ def transaction_summary_page():
 
     dash.grid_columnconfigure(0,weight=1) # Centering the entire window
     dash.grid_columnconfigure(8,weight=1) # Centering the entire window
-    # dash.grid_rowconfigure(0, weight=1) # Centering the entire window
-    # dash.grid_rowconfigure(2, weight=0) # Centering the entire window
-    # dash.grid_rowconfigure(4, weight=0) # Centering the entire window
-    # dash.grid_rowconfigure(6, weight=0) # Centering the entire window
 
 
     # Row 1
@@ -725,22 +752,21 @@ def transaction_summary_page():
     # Changing the category values when the Type changes
     def update_second_dropdown(event):
         selected_option = drop_down.get()
-        if selected_option == "Income":
-            new_options = ["Salary", "Pension", "Interest", "Others"]
-        elif selected_option == "Expense":
+        if selected_option == "Income": # If the dropdown widget for type is at Income
+            new_options = ["Salary", "Pension", "Interest", "Others"] # Then change this widget to the types of income
+        elif selected_option == "Expense": # Do the same for Expense
             new_options = ["Food", "Rent", "Clothing", "Car", "Health", "Others"]
         else:
-            new_options = ["None"]
-
+            new_options = ["None"] # If its neither then set the widget to none
         category_choice['values'] = new_options
         if new_options:
-            category_choice.set(new_options[0])
+            category_choice.set(new_options[0]) 
         else:
             category_choice.set("None")
 
 
 
-    drop_down.bind("<<ComboboxSelected>>", update_second_dropdown)
+    drop_down.bind("<<ComboboxSelected>>", update_second_dropdown) # Bind the updating function to the dropdown
 
     # Source or Payee
     Label(dash, text="Recipient: ", font="10").grid(row=2,column=3)
@@ -749,22 +775,19 @@ def transaction_summary_page():
 
 
     read_only_text = Text(dash, width=90, height=10, wrap='word', font=('Arial', 12)) # The text box for inserting the transactions
-    # # Centering the text
-    # read_only_text.tag_configure('center', justify='center')
-    # read_only_text.tag_add('center', 1.0, 'end')
     read_only_text.grid(row=3, column=1, columnspan=6, pady=20)
     # Disable the Text widget to make it read-only
     read_only_text.config(state='disabled')
 
 
-    def show():
+    def show(): # The process to show the user the data they want
         # Disable the Text widget to make it read-only
         read_only_text.config(state='normal')
 
         read_only_text.delete("1.0", END) # Clear the text already there before adding new ones
 
-        try:
-            start_tDate = sql_date_conversion(start_date_input.get()) # Ending Date
+        try: # Try to get the data from the widgets
+            start_tDate = sql_date_conversion(start_date_input.get()) # Start Date
             end_tDate = sql_date_conversion(end_date_input.get()) # Ending Date
             utype = drop_down.get() # Type (Income or Expense)
             category = category_choice.get().strip() # Category
@@ -881,12 +904,10 @@ def transaction_summary_page():
         verification = messagebox.askyesno("Wait", "Are you sure you want to print this data?")
 
         if verification:
-            # # Enable the Text widget
-            # read_only_text.config(state='normal')
 
             document_data = read_only_text.get("1.0",END)
 
-            if document_data.strip() == "":
+            if document_data.strip() == "" or document_data.strip() == "You Have No Transactions":
                 messagebox.showerror("Error", "Please Generate Data To Create The Document")
             else:
                 # Regular expression to match the values after each colon
@@ -905,7 +926,7 @@ def transaction_summary_page():
 
                 for v in read_only_data:
                     try:
-                        tester.append([v.split("\t")[1]])
+                        tester.append([v.split("\t")[1]]) # Seperating each line by the tab space  1 |\t .... then collecting the value after the tab
                     except:
                         pass
                 
@@ -914,8 +935,8 @@ def transaction_summary_page():
                     line = ', '.join(v)
                     try:
                         # Find all matches
-                        matches = re.findall(pattern, line)
-                        data.append(matches)
+                        matches = re.findall(pattern, line) # find all the values after the colon and before the comma that seperates each value
+                        data.append(matches) # save that value
                     except:
                         pass
 
@@ -942,13 +963,17 @@ def transaction_summary_page():
                 # Export the DataFrame to a CSV file
                 # Generate a unique filename using the current timestamp
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"{user.capitalize()}_PFT_{timestamp}.csv"
+                filename = f"{user.capitalize()}_PFT_{timestamp}.csv" # eg. David_PFT_2023/02/22_122905
 
-                df.to_csv(filename, index=False)
-                messagebox.showinfo("Thank You", "Statement Printed out Successfully. Please Check Your Folder!")
+                df.to_csv(filename, index=False) # Create a csv file
+                messagebox.showinfo("Thank You", "Statement Printed out Successfully. Please Check Your Folder!") # Notify user process is finished
 
 
     def bar():
+
+        # Use SQL queries to collect data from the database for the bar chart.
+        # Generate errors if the data needed is not given
+        
         if drop_down.get() == "Income or Expense":
             messagebox.showerror("Error", "No data to work with. Try picking a Type")
         else:
@@ -976,6 +1001,9 @@ def transaction_summary_page():
                 messagebox.showinfo("Error", "No data found for this time period and transaction type.")
             
     def pie():
+
+        # Use SQL queries to collect data from the database for the Pie chart.
+        # Generate errors if the data needed is not given
 
         if drop_down.get() == "Income or Expense" or drop_down.get().strip() == "" or drop_down.get().strip() != "Income" and drop_down.get().strip() != "Expense":
             messagebox.showerror("Error", "Please Choose a Type")
